@@ -67,7 +67,7 @@ class CPU
         auto& regs = context_.registers;
 
         while (context_.state != CPUState::HALT) {
-            auto pc = context_.registers.pc;
+            auto pc = regs.pc;
             auto instruction = fetch_instruction();
             auto& logger = logger::Logger::instance();
             logger.log(
@@ -90,6 +90,26 @@ class CPU
 
     auto fetch_data(const Instruction& instruction)
     {
+        const auto rd8_handler = [this]() {
+            auto& regs = context_.registers;
+            context_.fetched_data = memory_.read(regs.pc);
+            regs.pc++;
+            return;
+        };
+
+        const auto d_16_mode_handler = [this]() {
+            auto& regs = context_.registers;
+
+            auto lo = memory_.read(regs.pc);
+            // emu_cycles
+            auto hi = memory_.read(regs.pc + 1);
+            // emu_cycles
+
+            context_.fetched_data = (lo | (hi << 8));
+            regs.pc += 2;
+            return;
+        };
+
         switch (instruction.mode) {
             case AddressingMode::IMP: {
                 return;
@@ -102,10 +122,7 @@ class CPU
                 return;
             };
             case AddressingMode::R_D8: {
-                auto& regs = context_.registers;
-                context_.fetched_data = memory_.read(regs.pc);
-                regs.pc++;
-                return;
+                rd8_handler();
             }
             // case AddressingMode::R_MR:
             // case AddressingMode::R_HLI:
@@ -116,16 +133,7 @@ class CPU
             // case AddressingMode::A8_R:
             // case AddressingMode::HL_SPR:
             case AddressingMode::D16: {
-                auto& regs = context_.registers;
-
-                auto lo = memory_.read(regs.pc);
-                // emu_cycles
-                auto hi = memory_.read(regs.pc + 1);
-                // emu_cycles
-
-                context_.fetched_data = (lo | (hi << 8));
-                regs.pc += 2;
-                return;
+                d_16_mode_handler();
             }
             // case AddressingMode::D8:
             // case AddressingMode::D16_R:
