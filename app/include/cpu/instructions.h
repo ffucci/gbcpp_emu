@@ -145,7 +145,7 @@ static constexpr std::array<std::string_view, 48> instruction_names = {
     "IN_RR",  "IN_SLA", "IN_SRA", "IN_SWAP", "IN_SRL", "IN_BIT", "IN_RES", "IN_SET"};
 
 // This returns the instruction name
-constexpr auto get_instruction_name(InstructionType instr_type)
+constexpr auto get_instruction_name(InstructionType instr_type) -> std::string_view
 {
     return instruction_names[std::to_underlying(instr_type)];
 }

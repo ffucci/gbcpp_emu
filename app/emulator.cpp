@@ -19,14 +19,21 @@ void close_handler(const boost::system::error_code& error, int signal_number)
     logger.log("<-------- Closing GB-EMU -------->");
 }
 
-int main()
+int main(int argc, char** argv)
 {
+    if (argc < 2) {
+        printf("Usage: emu <rom_file>\n");
+        return -1;
+    }
+
+    std::string filename(argv[1]);
+
     using namespace gameboy::logger;
     auto& logger = Logger::instance();
     logger.log("... Starting GB-EMU .... ");
     logger.log("< Written by Francesco Fucci >");
-    auto rom_bytes = gameboy::utils::read_rom("./games/Pokemon_ES.gb");
-    auto rom_header = gameboy::cartridge::from_rom(rom_bytes);
+    gameboy::cartridge::Cartridge cartridge(filename);
+    gameboy::cpu::CPU cpu(gameboy::cpu::get_initial_state(), cartridge);
 
     SDL_Init(SDL_INIT_VIDEO);
 
@@ -46,7 +53,7 @@ int main()
         ioc.stop();
         close_handler(error, signal_nr);
     });
-
+    boost::asio::post([&cpu]() { cpu.run(); });
     ioc.run();
 
     SDL_DestroyTexture(gb_screen_texture);

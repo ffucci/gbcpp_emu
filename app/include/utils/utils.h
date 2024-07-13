@@ -50,7 +50,7 @@ inline auto read_rom(const std::string &file_name) -> std::vector<uint8_t>
     std::ifstream in_file(file_name.c_str(), std::ios::binary | std::ios::ate);
 
     if (!in_file.good()) {
-        throw std::runtime_error("Cannot open the rom file.");
+        throw std::runtime_error(std::format("Cannot open the rom file: {}.", file_name));
     }
 
     auto eof = in_file.tellg();

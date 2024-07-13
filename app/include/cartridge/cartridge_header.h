@@ -1,16 +1,19 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <span>
 
 #include "utils/logger.h"
+#include "utils/utils.h"
 
 namespace gameboy::cartridge {
+
+// Add the cartridge type
 enum class CartridgeType : uint8_t
 {
-
 };
 
 struct RomHeader
@@ -59,4 +62,35 @@ inline RomHeader from_rom(std::span<uint8_t> rom_view)
     logger.log(std::format("Checksum: ({}), {}", static_cast<int>(header.checksum), test));
     return header;
 }
+
+class Cartridge
+{
+   public:
+    Cartridge() = delete;
+
+    explicit Cartridge(std::string filename) : filename_(std::move(filename))
+    {
+        rom_data_ = gameboy::utils::read_rom(filename_);
+        header_ = gameboy::cartridge::from_rom(rom_data_);
+    }
+
+    auto header() const noexcept -> RomHeader
+    {
+        return header_;
+    }
+
+    auto read(uint16_t address) -> uint8_t
+    {
+        return rom_data_[address];
+    }
+
+    void write(uint16_t address, uint8_t value)
+    {
+    }
+
+   private:
+    std::vector<uint8_t> rom_data_;
+    RomHeader header_;
+    std::string filename_;
+};
 }  // namespace gameboy::cartridge
