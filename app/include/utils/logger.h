@@ -8,6 +8,7 @@
 
 #include <boost/lockfree/spsc_queue.hpp>
 
+namespace gameboy::logger {
 struct LogColors
 {
     static constexpr std::string_view TRACE = "\033[1;30m";
@@ -59,3 +60,4 @@ class Logger
     boost::lockfree::spsc_queue<std::string> buffer_{1024};
     std::jthread logger_thread_;
 };
+}  // namespace gameboy::logger

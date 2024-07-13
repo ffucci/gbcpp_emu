@@ -9,6 +9,7 @@
 #include <fstream>
 #include "logger.h"
 
+namespace gameboy::utils {
 template <class Elem, class Traits>
 inline void hex_dump(
     const void *aData, std::size_t aLength, std::basic_ostream<Elem, Traits> &aStream, std::size_t aWidth)
@@ -19,7 +20,7 @@ inline void hex_dump(
     while (line != end) {
         aStream.width(4);
         aStream.fill('0');
-        aStream << LogColors::ERROR << std::hex << line - start << " : ";
+        aStream << logger::LogColors::ERROR << std::hex << line - start << " : ";
         std::size_t lineLength = std::min(aWidth, static_cast<std::size_t>(end - line));
         for (std::size_t pass = 1; pass <= 2; ++pass) {
             for (const char *next = line; next != end && next != line + aWidth; ++next) {
@@ -54,7 +55,7 @@ inline auto read_rom(const std::string &file_name) -> std::vector<uint8_t>
 
     auto eof = in_file.tellg();
     auto file_size = static_cast<size_t>(eof);
-    auto &logger = Logger::instance();
+    auto &logger = logger::Logger::instance();
     logger.log(std::format("Game file size is {}", file_size));
     std::vector<uint8_t> result(file_size);
 
@@ -65,3 +66,4 @@ inline auto read_rom(const std::string &file_name) -> std::vector<uint8_t>
     std::cout << std::endl;
     return result;
 }
+}  // namespace gameboy::utils

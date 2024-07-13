@@ -4,10 +4,10 @@
 #include <cstdint>
 #include <cstring>
 #include <span>
-#include <memory>
 
 #include "utils/logger.h"
 
+namespace gameboy::cartridge {
 enum class CartridgeType : uint8_t
 {
 
@@ -21,8 +21,8 @@ struct RomHeader
 
     uint8_t entry[NUM_ENTRY_BITS];
     uint8_t logo[NUM_LOGO_BITS];
-    std::array<char, 16> title;
-    uint16_t new_licensee_code;
+    std::array<char, 16> title{};
+    uint16_t new_license_code;
     uint8_t sgb_flag;
     CartridgeType cartridge_type;
     uint8_t rom_size;
@@ -48,13 +48,15 @@ inline RomHeader from_rom(std::span<uint8_t> rom_view)
     RomHeader header;
     std::memcpy(&header, rom_view.data() + RomHeader::ENTRY_POINT, sizeof(RomHeader));
 
-    auto& logger = Logger::instance();
+    auto& logger = logger::Logger::instance();
     logger.log("Title Game: \t{}", std::string(header.title.begin(), header.title.end()));
     logger.log("ROM Size: \t{}", static_cast<size_t>(header.rom_size));
     logger.log("RAM Size: \t{}", static_cast<size_t>(header.ram_size));
+    logger.log("OLC: \t{:#x}", static_cast<size_t>(header.old_license_code));
     logger.log("G. CSUM: \t{:#x}", static_cast<size_t>(header.global_checksum));
 
     const auto test = compute_checksum(rom_view) & 0xFF ? "PASSED" : "FAILED";
     logger.log(std::format("Checksum: ({}), {}", static_cast<int>(header.checksum), test));
     return header;
 }
+}  // namespace gameboy::cartridge

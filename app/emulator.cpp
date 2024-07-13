@@ -10,19 +10,23 @@
 
 #include <boost/asio.hpp>
 
+#include "cpu/cpu.h"
+
 void close_handler(const boost::system::error_code& error, int signal_number)
 {
+    using namespace gameboy::logger;
     auto& logger = Logger::instance();
     logger.log("<-------- Closing GB-EMU -------->");
 }
 
 int main()
 {
+    using namespace gameboy::logger;
     auto& logger = Logger::instance();
     logger.log("... Starting GB-EMU .... ");
     logger.log("< Written by Francesco Fucci >");
-    auto rom_bytes = read_rom("./games/Pokemon_ES.gb");
-    auto rom_header = from_rom(rom_bytes);
+    auto rom_bytes = gameboy::utils::read_rom("./games/Pokemon_ES.gb");
+    auto rom_header = gameboy::cartridge::from_rom(rom_bytes);
 
     SDL_Init(SDL_INIT_VIDEO);
 
