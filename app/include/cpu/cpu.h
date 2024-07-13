@@ -48,6 +48,11 @@ struct CPUContext
     CPUState state;
 };
 
+constexpr uint16_t reverse(uint16_t n)
+{
+    return ((n & 0xFF00) >> 8) | ((n & 0x00FF) << 8);
+}
+
 class CPU
 {
    public:
@@ -59,12 +64,15 @@ class CPU
     void run()
     {
         context_.state = CPUState::RUNNING;
+        auto& regs = context_.registers;
+
         while (context_.state != CPUState::HALT) {
             auto pc = context_.registers.pc;
             auto instruction = fetch_instruction();
-
             auto& logger = logger::Logger::instance();
-            logger.log("PC: {:#x}, INST: {}", pc, get_instruction_name(instruction.type));
+            logger.log(
+                "PC: {:#x}, INST: {}, A: {:#x}, B:{:#x}, C:{:#x}", pc, get_instruction_name(instruction.type), regs.a,
+                regs.b, regs.c);
 
             if (instruction.type == InstructionType::NONE) {
                 throw std::runtime_error("Instruction is not valid or not yet added.");
@@ -73,15 +81,103 @@ class CPU
     }
 
    private:
-    void next() noexcept
-    {
-    }
-
     auto fetch_instruction() noexcept -> const Instruction&
     {
         auto& registers = context_.registers;
         context_.current_opcode = memory_.read(registers.pc++);
         return instruction_set_[context_.current_opcode];
+    }
+
+    auto fetch_data(const Instruction& instruction)
+    {
+        switch (instruction.mode) {
+            case AddressingMode::IMP: {
+                return;
+            }
+            // case AddressingMode::R_D16:
+            // case AddressingMode::R_R:
+            // case AddressingMode::MR_R:
+            case AddressingMode::R: {
+                context_.fetched_data = cpu_read_reg(instruction.r1);
+                return;
+            };
+            case AddressingMode::R_D8: {
+                auto& regs = context_.registers;
+                context_.fetched_data = memory_.read(regs.pc);
+                regs.pc++;
+                return;
+            }
+            // case AddressingMode::R_MR:
+            // case AddressingMode::R_HLI:
+            // case AddressingMode::R_HLD:
+            // case AddressingMode::HLI_R:
+            // case AddressingMode::HLD_R:
+            // case AddressingMode::R_A8:
+            // case AddressingMode::A8_R:
+            // case AddressingMode::HL_SPR:
+            case AddressingMode::D16: {
+                auto& regs = context_.registers;
+
+                auto lo = memory_.read(regs.pc);
+                // emu_cycles
+                auto hi = memory_.read(regs.pc + 1);
+                // emu_cycles
+
+                context_.fetched_data = (lo | (hi << 8));
+                regs.pc += 2;
+                return;
+            }
+            // case AddressingMode::D8:
+            // case AddressingMode::D16_R:
+            // case AddressingMode::MR_D8:
+            // case AddressingMode::MR:
+            case AddressingMode::A16_R: {
+                return;
+            }
+            // case AddressingMode::R_A16:
+            //     break;
+            default:
+                throw std::runtime_error("Unknown addressing mode");
+        }
+    }
+
+    uint16_t cpu_read_reg(RegisterType rt)
+    {
+        auto& regs = context_.registers;
+        using gameboy::cpu::RegisterType;
+        switch (rt) {
+            case RegisterType::A:
+                return regs.a;
+            case RegisterType::F:
+                return regs.f;
+            case RegisterType::B:
+                return regs.b;
+            case RegisterType::C:
+                return regs.c;
+            case RegisterType::D:
+                return regs.d;
+            case RegisterType::E:
+                return regs.e;
+            case RegisterType::H:
+                return regs.h;
+            case RegisterType::L:
+                return regs.l;
+
+            case RegisterType::AF:
+                return reverse(*((uint16_t*)&regs.a));
+            case RegisterType::BC:
+                return reverse(*((uint16_t*)&regs.b));
+            case RegisterType::DE:
+                return reverse(*((uint16_t*)&regs.d));
+            case RegisterType::HL:
+                return reverse(*((uint16_t*)&regs.h));
+            case RegisterType::PC:
+                return regs.pc;
+            case RegisterType::SP:
+                return regs.sp;
+            default:
+                return 0;
+        }
     }
 
     CPUContext context_;

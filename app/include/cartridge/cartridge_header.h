@@ -59,7 +59,7 @@ inline RomHeader from_rom(std::span<uint8_t> rom_view)
     logger.log("G. CSUM: \t{:#x}", static_cast<size_t>(header.global_checksum));
 
     const auto test = compute_checksum(rom_view) & 0xFF ? "PASSED" : "FAILED";
-    logger.log(std::format("Checksum: ({}), {}", static_cast<int>(header.checksum), test));
+    logger.log(std::format("Checksum: ({:#x}), {}\n", static_cast<int>(header.checksum), test));
     return header;
 }
 
