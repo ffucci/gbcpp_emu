@@ -1,9 +1,12 @@
 #pragma once
 
+#include <sys/types.h>
 #include <cstdint>
 #include <stdexcept>
+#include <utility>
 
 #include "cartridge/cartridge_header.h"
+#include "cpu/executor.h"
 #include "instructions.h"
 #include "mmu/mmu.h"
 #include "utils/logger.h"
@@ -45,12 +48,84 @@ struct CPUContext
     uint16_t memory_destination;
     uint8_t current_opcode;
 
+    Instruction instruction;
     CPUState state;
 };
 
 constexpr uint16_t reverse(uint16_t n)
 {
     return ((n & 0xFF00) >> 8) | ((n & 0x00FF) << 8);
+}
+
+using Handler = void (*)(CPUContext& context);
+using ExecutorsTable = std::array<Handler, NUM_INSTRUCTION_TYPES>;
+
+inline void none_handler(CPUContext& ctx)
+{
+    throw std::runtime_error("CANNOT EXECUTE");
+}
+
+inline void nop_handler(CPUContext& ctx)
+{
+}
+
+static constexpr uint8_t ZERO = {1 << 7};
+static constexpr uint8_t N_SUB = {1 << 6};
+static constexpr uint8_t HALF = {1 << 5};
+static constexpr uint8_t CARRY = {1 << 4};
+
+inline void cpu_set_flag(uint8_t& flags, bool zero, bool n, bool half, bool carry)
+{
+    flags = (flags & ~ZERO) | (-zero & ZERO);
+    flags = (flags & ~N_SUB) | (-n & N_SUB);
+    flags = (flags & ~HALF) | (-half & HALF);
+    flags = (flags & ~CARRY) | (-carry & CARRY);
+}
+
+inline void xor_handler(CPUContext& ctx)
+{
+    auto& regs = ctx.registers;
+    regs.a ^= ctx.fetched_data;
+    cpu_set_flag(regs.f, regs.a == 0, false, false, false);
+}
+
+inline bool check_cond(CPUContext& context)
+{
+    bool z = (context.registers.f & ZERO) != 0;
+    bool c = (context.registers.f & CARRY) != 0;
+
+    switch (context.instruction.condition) {
+        case ConditionType::None:
+            return true;
+        case ConditionType::C:
+            return c;
+        case ConditionType::NC:
+            return !c;
+        case ConditionType::Z:
+            return z;
+        case ConditionType::NZ:
+            return !z;
+    }
+
+    return false;
+}
+
+inline void jp_handler(CPUContext& ctx)
+{
+    if (check_cond(ctx)) {
+        ctx.registers.pc = ctx.fetched_data;
+        // emulate cycles
+    }
+}
+
+static constexpr auto make_executors_table() -> ExecutorsTable
+{
+    ExecutorsTable table_{};
+    std::fill(begin(table_), end(table_), none_handler);
+    table_[std::to_underlying(InstructionType::NOP)] = nop_handler;
+    table_[std::to_underlying(InstructionType::XOR)] = xor_handler;
+    table_[std::to_underlying(InstructionType::JP)] = jp_handler;
+    return table_;
 }
 
 class CPU
@@ -68,15 +143,19 @@ class CPU
 
         while (context_.state != CPUState::HALT) {
             auto pc = regs.pc;
-            auto instruction = fetch_instruction();
+            context_.instruction = fetch_instruction();
+            fetch_data(context_.instruction);
             auto& logger = logger::Logger::instance();
             logger.log(
-                "PC: {:#x}, INST: {}, A: {:#x}, B:{:#x}, C:{:#x}", pc, get_instruction_name(instruction.type), regs.a,
-                regs.b, regs.c);
+                "PC: {:#x}, INST: ({}, {:#x}), A: {:#x}, B:{:#x}, C:{:#x}, F:{:b}", pc,
+                get_instruction_name(context_.instruction.type), context_.current_opcode, regs.a, regs.b, regs.c,
+                regs.f);
 
-            if (instruction.type == InstructionType::NONE) {
+            if (context_.instruction.type == InstructionType::NONE) {
                 throw std::runtime_error("Instruction is not valid or not yet added.");
             }
+
+            execute(context_.instruction);
         }
     }
 
@@ -88,7 +167,7 @@ class CPU
         return instruction_set_[context_.current_opcode];
     }
 
-    auto fetch_data(const Instruction& instruction)
+    auto fetch_data(const Instruction& instruction) -> void
     {
         const auto rd8_handler = [this]() {
             auto& regs = context_.registers;
@@ -149,7 +228,14 @@ class CPU
         }
     }
 
-    uint16_t cpu_read_reg(RegisterType rt)
+    void execute(const Instruction& instruction)
+    {
+        auto& logger = logger::Logger::instance();
+        logger.log("OPC: {:#x} , PC: {:#x} ", context_.current_opcode, context_.registers.pc);
+        executors_[std::to_underlying(instruction.type)](context_);
+    }
+
+    auto cpu_read_reg(RegisterType rt) -> uint16_t
     {
         auto& regs = context_.registers;
         using gameboy::cpu::RegisterType;
@@ -191,5 +277,6 @@ class CPU
     CPUContext context_;
     memory::MMU memory_;
     static constexpr auto instruction_set_ = initialize_instruction_set();
+    static constexpr auto executors_ = make_executors_table();
 };
 }  // namespace gameboy::cpu

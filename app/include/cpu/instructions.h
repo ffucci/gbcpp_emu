@@ -6,6 +6,9 @@
 #include <utility>
 
 namespace gameboy::cpu {
+
+static constexpr uint16_t NUM_INSTRUCTION_TYPES = 48;
+
 enum class RegisterType : uint8_t
 {
     None,
@@ -131,13 +134,13 @@ constexpr std::array<Instruction, 0x100> initialize_instruction_set()
 
     // XOR instruction
     all_instructions[0xAF] = {InstructionType::XOR, AddressingMode::R, RegisterType::A};
-    all_instructions[0xC3] = {InstructionType::XOR, AddressingMode::D16};
+    all_instructions[0xC3] = {InstructionType::JP, AddressingMode::D16};
     all_instructions[0xF3] = {InstructionType::DI};
 
     return all_instructions;
 }
 
-static constexpr std::array<std::string_view, 48> instruction_names = {
+static constexpr std::array<std::string_view, NUM_INSTRUCTION_TYPES> instruction_names = {
     "<NONE>", "NOP",    "LD",     "INC",     "DEC",    "RLCA",   "ADD",    "RRCA",   "STOP",   "RLA",
     "JR",     "RRA",    "DAA",    "CPL",     "SCF",    "CCF",    "HALT",   "ADC",    "SUB",    "SBC",
     "AND",    "XOR",    "OR",     "CP",      "POP",    "JP",     "PUSH",   "RET",    "CB",     "CALL",
