@@ -13,6 +13,11 @@
 
 namespace gameboy::cpu {
 
+static constexpr uint8_t ZERO = {1 << 7};
+static constexpr uint8_t N_SUB = {1 << 6};
+static constexpr uint8_t HALF = {1 << 5};
+static constexpr uint8_t CARRY = {1 << 4};
+
 struct CPURegisters
 {
     uint8_t a;
@@ -50,6 +55,8 @@ struct CPUContext
 
     Instruction instruction;
     CPUState state;
+
+    bool interrupt_masked{false};
 };
 
 constexpr uint16_t reverse(uint16_t n)
@@ -68,11 +75,6 @@ inline void none_handler(CPUContext& ctx)
 inline void nop_handler(CPUContext& ctx)
 {
 }
-
-static constexpr uint8_t ZERO = {1 << 7};
-static constexpr uint8_t N_SUB = {1 << 6};
-static constexpr uint8_t HALF = {1 << 5};
-static constexpr uint8_t CARRY = {1 << 4};
 
 inline void cpu_set_flag(uint8_t& flags, bool zero, bool n, bool half, bool carry)
 {
@@ -118,6 +120,11 @@ inline void jp_handler(CPUContext& ctx)
     }
 }
 
+inline void di_handler(CPUContext& ctx)
+{
+    ctx.interrupt_masked = true;
+}
+
 static constexpr auto make_executors_table() -> ExecutorsTable
 {
     ExecutorsTable table_{};
@@ -125,6 +132,7 @@ static constexpr auto make_executors_table() -> ExecutorsTable
     table_[std::to_underlying(InstructionType::NOP)] = nop_handler;
     table_[std::to_underlying(InstructionType::XOR)] = xor_handler;
     table_[std::to_underlying(InstructionType::JP)] = jp_handler;
+    table_[std::to_underlying(InstructionType::DI)] = di_handler;
     return table_;
 }
 
