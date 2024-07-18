@@ -274,9 +274,10 @@ class CPU
             fetch_data(context_.instruction);
             auto& logger = logger::Logger::instance();
             logger.log(
-                "{:#x}: {} ({:2X}, {:2X}, {:2X}), A: {:#x}, B:{:#x}, C:{:#x}, F:{:b}", pc,
-                get_instruction_name(context_.instruction.type), context_.current_opcode, memory_.read(pc + 1),
-                memory_.read(pc + 2), regs.a, regs.b, regs.c, regs.f);
+                "{:#x}: {} ({:02X}, {:02X}, {:02X}), A: {:02X}, BC:{:02X}{:02X}, DE:{:02X}{:02X}, HL:{:02X}{:02X}, "
+                "F:{:b}",
+                pc, get_instruction_name(context_.instruction.type), context_.current_opcode, memory_.read(pc + 1),
+                memory_.read(pc + 2), regs.a, regs.b, regs.c, regs.d, regs.e, regs.h, regs.l, regs.f);
 
             if (context_.instruction.type == InstructionType::NONE) {
                 throw std::runtime_error("Instruction is not valid or not yet added.");

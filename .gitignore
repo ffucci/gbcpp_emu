@@ -1,4 +1,4 @@
 games/
-build-release
+build-*
 .cache
 compile_commands.json
