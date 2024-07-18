@@ -9,6 +9,6 @@ if (SDL2_FOUND)
     target_include_directories(emulator PUBLIC include)
 
     include_directories(SYSTEM ${SDL2_INCLUDE_DIRS})
-    target_link_libraries(emulator ${SDL2_LIBRARIES})
+    target_link_libraries(emulator ${SDL2_LIBRARIES} gbemu_lib)
 endif()
 

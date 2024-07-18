@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <utility>
 
-#include "cartridge/cartridge_header.h"
+#include "cartridge/cartridge.h"
 #include "cpu/executor.h"
 #include "instructions.h"
 #include "mmu/mmu.h"

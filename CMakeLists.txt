@@ -9,4 +9,4 @@ set(CMAKE_CXX_STANDARD 23)
 project(gbbcpp_emu)
 
 add_subdirectory(app)
-# add_subdirectory(lib)
+add_subdirectory(lib)

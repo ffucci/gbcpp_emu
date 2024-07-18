@@ -2,7 +2,8 @@
 #include <cstddef>
 #include <cstring>
 #include <thread>
-#include "cartridge/cartridge_header.h"
+
+#include "cartridge/cartridge.h"
 #include "utils/logger.h"
 #include "utils/utils.h"
 

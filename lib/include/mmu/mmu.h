@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <stdexcept>
-#include "cartridge/cartridge_header.h"
+#include "cartridge/cartridge.h"
 #include "mmu/ram.h"
 #include "utils/logger.h"
 namespace gameboy::memory {
