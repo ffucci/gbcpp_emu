@@ -22,6 +22,13 @@ class MMU
         throw std::runtime_error("NOT IMPL");
     }
 
+    auto read16(uint16_t address) -> uint16_t
+    {
+        auto low = read(address);
+        auto hi = read(address + 1);
+        return low | (hi << 8);
+    }
+
     auto write(uint16_t address, uint8_t value) -> void
     {
         if (address < 0x8000) {
@@ -29,7 +36,13 @@ class MMU
             return;
         }
 
-        throw std::runtime_error("NOT IMPL");
+        // throw std::runtime_error("NOT IMPL");
+    }
+
+    auto write16(uint16_t address, uint8_t value) -> void
+    {
+        write(address + 1, (value >> 8) & 0xFF);
+        write(address, value & 0xFF);
     }
 
    private:
