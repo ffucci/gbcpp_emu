@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include "cartridge/cartridge_header.h"
 #include "mmu/ram.h"
+#include "utils/logger.h"
 namespace gameboy::memory {
 
 // 0x0000 - 0x3FFF : ROM Bank 0
@@ -44,13 +45,19 @@ class MMU
             return 0;
         } else if (address < 0xFEA0) {
             throw std::runtime_error("NOT IMPL");
-        } else if (address < 0xFF00) {
+        }
+
+        if (address < 0xFF00) {
             // unused section
             return 0;
-        } else if (address < 0xFF80) {
-            throw std::runtime_error("IO");
-        } else if (address == 0xFFFF) {
-            throw std::runtime_error("CPU ENABLE REGISTER");
+        }
+
+        if (address < 0xFF80) {
+            return 0;
+        }
+
+        if (address == 0xFFFF) {
+            return int_enable_register_;
         }
 
         return ram_.hram_read(address);
@@ -96,14 +103,20 @@ class MMU
 
         if (address < 0xFF00) {
             // unused section
+            auto& logger = logger::Logger::instance();
+            logger.log("Unsuppored bus write {:04X}", address);
+            return;
         }
 
         if (address < 0xFF80) {
-            throw std::runtime_error("IO");
+            auto& logger = logger::Logger::instance();
+            logger.log("IO on address {:04X}", address);
+            return;
         }
 
         if (address == 0xFFFF) {
-            throw std::runtime_error("CPU ENABLE REGISTER");
+            int_enable_register_ = value;
+            return;
         }
 
         ram_.hram_write(address, value);
@@ -118,6 +131,9 @@ class MMU
    private:
     cartridge::Cartridge& cartridge_;
     RAM ram_{};
+
+    uint8_t int_enable_register_{0};
+
     static constexpr uint16_t HRAM_LIMIT{0x8000};
     static constexpr uint16_t CHR_RAM_LIMIT{0xA000};
 };

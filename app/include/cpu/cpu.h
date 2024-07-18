@@ -223,6 +223,8 @@ inline void ld_handler(CPUContext& ctx, memory::MMU& memory)
         } else {
             memory.write(ctx.memory_destination, ctx.fetched_data);
         }
+
+        return;
     }
 
     if (ctx.instruction.mode == AddressingMode::HL_SPR) {
@@ -243,6 +245,17 @@ inline void di_handler(CPUContext& ctx, memory::MMU& memory)
     ctx.interrupt_masked = true;
 }
 
+inline void ldh_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    if (ctx.instruction.r1 == RegisterType::A) {
+        ctx.cpu_set_reg(RegisterType::A, memory.read(0xFF00 | ctx.fetched_data));
+    } else {
+        memory.write(0xFF00 | ctx.fetched_data, ctx.registers.a);
+    }
+
+    // emu_cycles(1);
+}
+
 static constexpr auto make_executors_table() -> ExecutorsTable
 {
     ExecutorsTable table_{};
@@ -251,6 +264,7 @@ static constexpr auto make_executors_table() -> ExecutorsTable
     table_[std::to_underlying(InstructionType::XOR)] = xor_handler;
     table_[std::to_underlying(InstructionType::JP)] = jp_handler;
     table_[std::to_underlying(InstructionType::LD)] = ld_handler;
+    table_[std::to_underlying(InstructionType::LDH)] = ldh_handler;
     table_[std::to_underlying(InstructionType::DI)] = di_handler;
     return table_;
 }
@@ -274,7 +288,7 @@ class CPU
             fetch_data(context_.instruction);
             auto& logger = logger::Logger::instance();
             logger.log(
-                "{:#x}: {} ({:02X}, {:02X}, {:02X}), A: {:02X}, BC:{:02X}{:02X}, DE:{:02X}{:02X}, HL:{:02X}{:02X}, "
+                "{:04X}: {} ({:02X}, {:02X}, {:02X}), A: {:02X}, BC:{:02X}{:02X}, DE:{:02X}{:02X}, HL:{:02X}{:02X}, "
                 "F:{:b}",
                 pc, get_instruction_name(context_.instruction.type), context_.current_opcode, memory_.read(pc + 1),
                 memory_.read(pc + 2), regs.a, regs.b, regs.c, regs.d, regs.e, regs.h, regs.l, regs.f);
