@@ -94,14 +94,29 @@ void sub_handler(CPUContext& ctx, memory::MMU& memory);
 void sbc_handler(CPUContext& ctx, memory::MMU& memory);
 
 // ************************* LOGICAL INSTRUCTIONS ******************************** //
+void and_handler(CPUContext& ctx, memory::MMU& memory);
 void xor_handler(CPUContext& ctx, memory::MMU& memory);
+inline void or_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    auto& regs = ctx.registers;
+    regs.a &= ctx.fetched_data & 0XFF;
+    cpu_set_flag(regs.f, regs.a == 0, 0, 0, 0);
+}
+
+inline void cp_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    auto& regs = ctx.registers;
+    auto n = static_cast<int>(regs.a) - static_cast<int>(ctx.fetched_data);
+    auto h = (static_cast<int>(regs.a) & 0xF) - (static_cast<int>(ctx.fetched_data) & 0xF);
+
+    cpu_set_flag(regs.f, n == 0, 1, h < 0, n < 0);
+}
 
 constexpr auto make_executors_table() -> const ExecutorsTable
 {
     ExecutorsTable table_{};
     std::fill(begin(table_), end(table_), none_handler);
     table_[std::to_underlying(InstructionType::NOP)] = nop_handler;
-    table_[std::to_underlying(InstructionType::XOR)] = xor_handler;
     table_[std::to_underlying(InstructionType::JP)] = jp_handler;
     table_[std::to_underlying(InstructionType::JR)] = jr_handler;
     table_[std::to_underlying(InstructionType::INC)] = inc_handler;
@@ -113,6 +128,10 @@ constexpr auto make_executors_table() -> const ExecutorsTable
     table_[std::to_underlying(InstructionType::SUB)] = sub_handler;
     table_[std::to_underlying(InstructionType::SBC)] = sbc_handler;
 
+    table_[std::to_underlying(InstructionType::XOR)] = xor_handler;
+    table_[std::to_underlying(InstructionType::OR)] = add_handler;
+    table_[std::to_underlying(InstructionType::AND)] = adc_handler;
+    table_[std::to_underlying(InstructionType::CP)] = sub_handler;
     // Going to subroutines opcodes (CALL, RET, ...)
     table_[std::to_underlying(InstructionType::CALL)] = call_handler;
     table_[std::to_underlying(InstructionType::RET)] = ret_handler;

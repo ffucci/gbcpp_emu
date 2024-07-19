@@ -289,7 +289,13 @@ bool check_cond(CPUContext& context)
 void xor_handler(CPUContext& ctx, memory::MMU& memory)
 {
     auto& regs = ctx.registers;
-    regs.a ^= ctx.fetched_data;
+    regs.a ^= ctx.fetched_data & 0xFF;
+    cpu_set_flag(regs.f, regs.a == 0, 0, 0, 0);
+}
+void and_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    auto& regs = ctx.registers;
+    regs.a &= ctx.fetched_data;
     cpu_set_flag(regs.f, regs.a == 0, 0, 0, 0);
 }
 }  // namespace gameboy::cpu
