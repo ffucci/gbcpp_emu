@@ -298,4 +298,18 @@ void and_handler(CPUContext& ctx, memory::MMU& memory)
     regs.a &= ctx.fetched_data;
     cpu_set_flag(regs.f, regs.a == 0, 0, 0, 0);
 }
+void or_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    auto& regs = ctx.registers;
+    regs.a &= ctx.fetched_data & 0XFF;
+    cpu_set_flag(regs.f, regs.a == 0, 0, 0, 0);
+}
+void cp_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    auto& regs = ctx.registers;
+    auto n = static_cast<int>(regs.a) - static_cast<int>(ctx.fetched_data);
+    auto h = (static_cast<int>(regs.a) & 0xF) - (static_cast<int>(ctx.fetched_data) & 0xF);
+
+    cpu_set_flag(regs.f, n == 0, 1, h < 0, n < 0);
+}
 }  // namespace gameboy::cpu

@@ -83,7 +83,6 @@ void reti_handler(CPUContext& ctx, memory::MMU& memory);
 void rst_handler(CPUContext& ctx, memory::MMU& memory);
 
 // ************************* INC/DEC INSTRUCTIONS ******************************** //
-
 void inc_handler(CPUContext& ctx, memory::MMU& memory);
 void dec_handler(CPUContext& ctx, memory::MMU& memory);
 
@@ -96,21 +95,8 @@ void sbc_handler(CPUContext& ctx, memory::MMU& memory);
 // ************************* LOGICAL INSTRUCTIONS ******************************** //
 void and_handler(CPUContext& ctx, memory::MMU& memory);
 void xor_handler(CPUContext& ctx, memory::MMU& memory);
-inline void or_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    auto& regs = ctx.registers;
-    regs.a &= ctx.fetched_data & 0XFF;
-    cpu_set_flag(regs.f, regs.a == 0, 0, 0, 0);
-}
-
-inline void cp_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    auto& regs = ctx.registers;
-    auto n = static_cast<int>(regs.a) - static_cast<int>(ctx.fetched_data);
-    auto h = (static_cast<int>(regs.a) & 0xF) - (static_cast<int>(ctx.fetched_data) & 0xF);
-
-    cpu_set_flag(regs.f, n == 0, 1, h < 0, n < 0);
-}
+void or_handler(CPUContext& ctx, memory::MMU& memory);
+void cp_handler(CPUContext& ctx, memory::MMU& memory);
 
 constexpr auto make_executors_table() -> const ExecutorsTable
 {
