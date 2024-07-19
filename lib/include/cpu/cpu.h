@@ -359,6 +359,11 @@ inline void reti_handler(CPUContext& ctx, memory::MMU& memory)
     ret_handler(ctx, memory);
 }
 
+inline void rst_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    jump_to_addr(ctx, memory, ctx.instruction.parameter, true);
+}
+
 static constexpr auto make_executors_table() -> ExecutorsTable
 {
     ExecutorsTable table_{};
@@ -370,6 +375,7 @@ static constexpr auto make_executors_table() -> ExecutorsTable
     table_[std::to_underlying(InstructionType::CALL)] = call_handler;
     table_[std::to_underlying(InstructionType::RET)] = ret_handler;
     table_[std::to_underlying(InstructionType::RETI)] = reti_handler;
+    table_[std::to_underlying(InstructionType::RST)] = rst_handler;
     table_[std::to_underlying(InstructionType::LD)] = ld_handler;
     table_[std::to_underlying(InstructionType::LDH)] = ldh_handler;
     table_[std::to_underlying(InstructionType::PUSH)] = push_handler;

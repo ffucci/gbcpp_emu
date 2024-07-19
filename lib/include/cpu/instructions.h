@@ -255,6 +255,8 @@ constexpr std::array<Instruction, 0x100> initialize_instruction_set()
         InstructionType::CALL, AddressingMode::D16, RegisterType::None, RegisterType::None, ConditionType::NZ};
 
     all_instructions[0xC5] = {InstructionType::PUSH, AddressingMode::IMP, RegisterType::BC};
+    all_instructions[0xC7] = {InstructionType::RST, AddressingMode::IMP, RegisterType::None,
+                              RegisterType::None,   ConditionType::None, 0x00};
 
     all_instructions[0xC8] = {
         InstructionType::RET, AddressingMode::IMP, RegisterType::None, RegisterType::None, ConditionType::Z};
@@ -266,7 +268,8 @@ constexpr std::array<Instruction, 0x100> initialize_instruction_set()
         InstructionType::CALL, AddressingMode::D16, RegisterType::None, RegisterType::None, ConditionType::Z};
 
     all_instructions[0xCD] = {InstructionType::CALL, AddressingMode::D16};
-
+    all_instructions[0xCF] = {InstructionType::RST, AddressingMode::IMP, RegisterType::None,
+                              RegisterType::None,   ConditionType::None, 0x08};
     // ------------------------------------------------------------------------------------------------------------------------------------------------
     // 0xDx
 
@@ -281,29 +284,41 @@ constexpr std::array<Instruction, 0x100> initialize_instruction_set()
         InstructionType::CALL, AddressingMode::D16, RegisterType::None, RegisterType::None, ConditionType::NC};
 
     all_instructions[0xD5] = {InstructionType::PUSH, AddressingMode::IMP, RegisterType::DE};
+
+    all_instructions[0xD7] = {InstructionType::RST, AddressingMode::IMP, RegisterType::None,
+                              RegisterType::None,   ConditionType::None, 0x10};
     all_instructions[0xD8] = {
         InstructionType::RET, AddressingMode::IMP, RegisterType::None, RegisterType::None, ConditionType::C};
     all_instructions[0xD9] = {InstructionType::RETI, AddressingMode::IMP};
 
     all_instructions[0xDA] = {
         InstructionType::JP, AddressingMode::D16, RegisterType::None, RegisterType::None, ConditionType::C};
+    all_instructions[0xDF] = {InstructionType::RST, AddressingMode::IMP, RegisterType::None,
+                              RegisterType::None,   ConditionType::None, 0x18};
 
     // 0xEx
     all_instructions[0xE0] = {InstructionType::LDH, AddressingMode::A8_R, RegisterType::None, RegisterType::A};
     all_instructions[0xE1] = {InstructionType::POP, AddressingMode::IMP, RegisterType::HL};
     all_instructions[0xE2] = {InstructionType::LD, AddressingMode::MR_R, RegisterType::C, RegisterType::A};
     all_instructions[0xE5] = {InstructionType::PUSH, AddressingMode::IMP, RegisterType::HL};
+    all_instructions[0xE7] = {InstructionType::RST, AddressingMode::IMP, RegisterType::None,
+                              RegisterType::None,   ConditionType::None, 0x20};
+
     all_instructions[0xE9] = {InstructionType::JP, AddressingMode::MR, RegisterType::HL};
     all_instructions[0xEA] = {InstructionType::LD, AddressingMode::A16_R, RegisterType::None, RegisterType::A};
-
+    all_instructions[0xEF] = {InstructionType::RST, AddressingMode::IMP, RegisterType::None,
+                              RegisterType::None,   ConditionType::None, 0x28};
     // 0xFx
     all_instructions[0xF0] = {InstructionType::LDH, AddressingMode::R_A8, RegisterType::A, RegisterType::None};
     all_instructions[0xF1] = {InstructionType::POP, AddressingMode::IMP, RegisterType::AF};
     all_instructions[0xF2] = {InstructionType::LD, AddressingMode::R_MR, RegisterType::A, RegisterType::C},
     all_instructions[0xF3] = {InstructionType::DI};
     all_instructions[0xF5] = {InstructionType::PUSH, AddressingMode::IMP, RegisterType::AF};
-
+    all_instructions[0xF7] = {InstructionType::RST, AddressingMode::IMP, RegisterType::None,
+                              RegisterType::None,   ConditionType::None, 0x30};
     all_instructions[0xFA] = {InstructionType::LD, AddressingMode::R_A16, RegisterType::A};
+    all_instructions[0xFF] = {InstructionType::RST, AddressingMode::IMP, RegisterType::None,
+                              RegisterType::None,   ConditionType::None, 0x38};
     return all_instructions;
 }
 
