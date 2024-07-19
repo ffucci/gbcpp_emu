@@ -60,19 +60,19 @@ inline void nop_handler(CPUContext& ctx, memory::MMU& memory)
 {
 }
 
-void xor_handler(CPUContext& ctx, memory::MMU& memory);
-
 bool check_cond(CPUContext& context);
 void ld_handler(CPUContext& ctx, memory::MMU& memory);
 
 void di_handler(CPUContext& ctx, memory::MMU& memory);
 void ldh_handler(CPUContext& ctx, memory::MMU& memory);
 
+// ************************* STACK INSTRUCTIONS *************************** //
+
 // Stack functions
 void push_handler(CPUContext& ctx, memory::MMU& memory);
 void pop_handler(CPUContext& ctx, memory::MMU& memory);
 
-// Jump and call functions
+// ************************* JUMP/CALL/RET INSTRUCTIONS *************************** //
 void jump_to_addr(CPUContext& ctx, memory::MMU& memory, uint16_t addr, bool push_pc);
 void jp_handler(CPUContext& ctx, memory::MMU& memory);
 void jr_handler(CPUContext& ctx, memory::MMU& memory);
@@ -80,17 +80,21 @@ void call_handler(CPUContext& ctx, memory::MMU& memory);
 void ret_handler(CPUContext& ctx, memory::MMU& memory);
 // returning from interrupt
 void reti_handler(CPUContext& ctx, memory::MMU& memory);
-
 void rst_handler(CPUContext& ctx, memory::MMU& memory);
 
-void inc_handler(CPUContext& ctx, memory::MMU& memory);
+// ************************* INC/DEC INSTRUCTIONS ******************************** //
 
+void inc_handler(CPUContext& ctx, memory::MMU& memory);
 void dec_handler(CPUContext& ctx, memory::MMU& memory);
+
+// ************************* ADD/SUB INSTRUCTIONS ******************************** //
 void add_handler(CPUContext& ctx, memory::MMU& mmu);
 void adc_handler(CPUContext& ctx, memory::MMU& mmu);
-
 void sub_handler(CPUContext& ctx, memory::MMU& memory);
 void sbc_handler(CPUContext& ctx, memory::MMU& memory);
+
+// ************************* LOGICAL INSTRUCTIONS ******************************** //
+void xor_handler(CPUContext& ctx, memory::MMU& memory);
 
 constexpr auto make_executors_table() -> const ExecutorsTable
 {
