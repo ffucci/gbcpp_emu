@@ -18,6 +18,8 @@ static constexpr uint8_t N_SUB = {1 << 6};
 static constexpr uint8_t HALF = {1 << 5};
 static constexpr uint8_t CARRY = {1 << 4};
 
+static constexpr bool DEBUG{false};
+
 struct CPURegisters
 {
     uint8_t a;
@@ -154,7 +156,15 @@ struct CPUContext
                 break;
             case RegisterType::None:
                 break;
+
+            default:
+                throw std::runtime_error("Invalid register type...");
         }
+    }
+
+    static auto is_16_bit(RegisterType rt)
+    {
+        return rt >= RegisterType::AF;
     }
 };
 
@@ -194,19 +204,24 @@ inline void nop_handler(CPUContext& ctx, memory::MMU& memory)
 {
 }
 
-inline void cpu_set_flag(uint8_t& flags, bool zero, bool n, bool half, bool carry)
+inline void cpu_set_flag(uint8_t& flags, uint8_t zero, uint8_t n, uint8_t half, uint8_t carry)
 {
-    flags = (flags & ~ZERO) | (-zero & ZERO);
-    flags = (flags & ~N_SUB) | (-n & N_SUB);
-    flags = (flags & ~HALF) | (-half & HALF);
-    flags = (flags & ~CARRY) | (-carry & CARRY);
+    const auto bz = (zero << 7);
+    const auto bn = (n << 6);
+    const auto bh = (half << 5);
+    const auto bc = (carry << 4);
+
+    flags = (flags & ~bz) | (-(zero != 0xFF) & bz);
+    flags = (flags & ~bn) | (-(n != 0xFF) & bn);
+    flags = (flags & ~bh) | (-(half != 0xFF) & bh);
+    flags = (flags & ~bc) | (-(carry != 0xFF) & bc);
 }
 
 inline void xor_handler(CPUContext& ctx, memory::MMU& memory)
 {
     auto& regs = ctx.registers;
     regs.a ^= ctx.fetched_data;
-    cpu_set_flag(regs.f, regs.a == 0, false, false, false);
+    cpu_set_flag(regs.f, regs.a == 0, 0, 0, 0);
 }
 
 inline bool check_cond(CPUContext& context)
@@ -233,27 +248,43 @@ inline bool check_cond(CPUContext& context)
 inline void ld_handler(CPUContext& ctx, memory::MMU& memory)
 {
     if (ctx.destination_is_mem) {
-        if (ctx.instruction.r2 == RegisterType::AF) {
+        if (CPUContext::is_16_bit(ctx.instruction.r2)) {
             // emu_cycles(1)
             memory.write16(ctx.memory_destination, ctx.fetched_data);
         } else {
             memory.write(ctx.memory_destination, ctx.fetched_data);
         }
 
+        // emu_cycles(1);
         return;
     }
 
     if (ctx.instruction.mode == AddressingMode::HL_SPR) {
         const auto reg2_val = ctx.cpu_read_reg(ctx.instruction.r2);
 
-        bool hflag = (reg2_val & 0xF) + (ctx.fetched_data & 0xF) >= 0x10;
-        bool cflag = (reg2_val & 0xFF) + (ctx.fetched_data & 0xFF) >= 0x100;
+        auto hflag = (reg2_val & 0xF) + (ctx.fetched_data & 0xF) >= 0x10;
+        auto cflag = (reg2_val & 0xFF) + (ctx.fetched_data & 0xFF) >= 0x100;
 
-        cpu_set_flag(ctx.registers.f, false, false, hflag, cflag);
+        cpu_set_flag(ctx.registers.f, 0, 0, hflag, cflag);
         ctx.cpu_set_reg(ctx.instruction.r1, reg2_val + (char)(ctx.fetched_data));  // TODO: understand better.
         return;
     }
+
+    auto& logger = logger::Logger::instance();
+    // In other cases just take the fetched data and move to register 1
     ctx.cpu_set_reg(ctx.instruction.r1, ctx.fetched_data);
+
+    if constexpr (DEBUG) {
+        logger.log("---------> LD {:02X} reg, {:02X} data", std::to_underlying(ctx.instruction.r1), ctx.fetched_data);
+        logger.log("---------> Reg data, {:02X}", ctx.cpu_read_reg(ctx.instruction.r1));
+        logger.log("---------> Reg data2, {:X}", ctx.registers.l);
+        logger.log(
+            "{:04X}: {} ({:02X}, {:02X}, {:02X}), A: {:02X}, BC:{:02X}{:02X}, DE:{:02X}{:02X}, HL:{:02X}{:02X}, "
+            "F:{:b}",
+            ctx.registers.pc, get_instruction_name(ctx.instruction.type), ctx.current_opcode,
+            memory.read(ctx.registers.pc + 1), memory.read(ctx.registers.pc + 2), ctx.registers.a, ctx.registers.b,
+            ctx.registers.c, ctx.registers.d, ctx.registers.e, ctx.registers.h, ctx.registers.l, ctx.registers.f);
+    }
 }
 
 inline void di_handler(CPUContext& ctx, memory::MMU& memory)
@@ -266,7 +297,7 @@ inline void ldh_handler(CPUContext& ctx, memory::MMU& memory)
     if (ctx.instruction.r1 == RegisterType::A) {
         ctx.cpu_set_reg(RegisterType::A, memory.read(0xFF00 | ctx.fetched_data));
     } else {
-        memory.write(0xFF00 | ctx.fetched_data, ctx.registers.a);
+        memory.write(ctx.memory_destination, ctx.registers.a);
     }
 
     // emu_cycles(1);
@@ -364,6 +395,59 @@ inline void rst_handler(CPUContext& ctx, memory::MMU& memory)
     jump_to_addr(ctx, memory, ctx.instruction.parameter, true);
 }
 
+inline void inc_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    auto val = ctx.cpu_read_reg(ctx.instruction.r1) + 1;
+
+    if (CPUContext::is_16_bit(ctx.instruction.r2)) {
+        // emu_cycles(1); add one cycle
+    }
+
+    auto& instruction = ctx.instruction;
+    if (instruction.r1 == RegisterType::HL && instruction.mode == AddressingMode::MR) {
+        auto address = ctx.cpu_read_reg(RegisterType::HL);
+        auto val = memory.read(address) + 1;
+        val &= 0xFF;
+        memory.write(address, val);
+    } else {
+        ctx.cpu_set_reg(ctx.instruction.r1, val);
+    }
+
+    if ((ctx.current_opcode & 0x03) == 0x03) {
+        return;
+    }
+
+    cpu_set_flag(ctx.registers.f, val == 0, 0, (val & 0xF) == 0, 0xFF);
+    return;
+}
+
+inline void dec_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    auto val = ctx.cpu_read_reg(ctx.instruction.r1) - 1;
+
+    if (CPUContext::is_16_bit(ctx.instruction.r2)) {
+        // emu_cycles(1); add one cycle
+    }
+
+    auto& instruction = ctx.instruction;
+    if (instruction.r1 == RegisterType::HL && instruction.mode == AddressingMode::MR) {
+        auto address = ctx.cpu_read_reg(RegisterType::HL);
+        auto val = memory.read(address) - 1;
+        val &= 0xFF;
+        memory.write(address, val);
+    } else {
+        ctx.cpu_set_reg(ctx.instruction.r1, val);
+    }
+
+    if ((ctx.current_opcode & 0x0B) == 0x0B) {
+        return;
+    }
+
+    // TODO: Correct CPU Set flags (which is not totally correct)
+    cpu_set_flag(ctx.registers.f, val == 0, 1, (val & 0x0F) == 0x0F, 0xFF);
+    return;
+}
+
 static constexpr auto make_executors_table() -> ExecutorsTable
 {
     ExecutorsTable table_{};
@@ -372,6 +456,9 @@ static constexpr auto make_executors_table() -> ExecutorsTable
     table_[std::to_underlying(InstructionType::XOR)] = xor_handler;
     table_[std::to_underlying(InstructionType::JP)] = jp_handler;
     table_[std::to_underlying(InstructionType::JR)] = jr_handler;
+    table_[std::to_underlying(InstructionType::INC)] = inc_handler;
+    table_[std::to_underlying(InstructionType::DEC)] = dec_handler;
+
     table_[std::to_underlying(InstructionType::CALL)] = call_handler;
     table_[std::to_underlying(InstructionType::RET)] = ret_handler;
     table_[std::to_underlying(InstructionType::RETI)] = reti_handler;
@@ -402,6 +489,7 @@ class CPU
             context_.instruction = fetch_instruction();
             fetch_data(context_.instruction);
             auto& logger = logger::Logger::instance();
+
             logger.log(
                 "{:04X}: {} ({:02X}, {:02X}, {:02X}), A: {:02X}, BC:{:02X}{:02X}, DE:{:02X}{:02X}, HL:{:02X}{:02X}, "
                 "F:{:b}",
@@ -426,9 +514,14 @@ class CPU
 
     auto fetch_data(const Instruction& instruction) -> void
     {
+        context_.memory_destination = 0;
+        context_.destination_is_mem = false;
+
         const auto rd8_handler = [this]() {
             auto& regs = context_.registers;
             context_.fetched_data = memory_.read(regs.pc);
+            // auto& logger = logger::Logger::instance();
+            // logger.log("Fetched data... {:02X}", context_.fetched_data);
             regs.pc++;
             return;
         };
@@ -604,8 +697,10 @@ class CPU
 
     void execute(const Instruction& instruction)
     {
-        // auto& logger = logger::Logger::instance();
-        // logger.log("OPC: {:#x} , PC: {:#x} ", context_.current_opcode, context_.registers.pc);
+        if constexpr (DEBUG) {
+            auto& logger = logger::Logger::instance();
+            logger.log("OPC: {:#x} , PC: {:#x} ", context_.current_opcode, context_.registers.pc);
+        }
         executors_[std::to_underlying(instruction.type)](context_, memory_);
     }
 

@@ -352,6 +352,7 @@ constexpr std::array<Instruction, 0x100> initialize_instruction_set()
     all_instructions[0xEA] = {InstructionType::LD, AddressingMode::A16_R, RegisterType::None, RegisterType::A};
     all_instructions[0xEF] = {InstructionType::RST, AddressingMode::IMP, RegisterType::None,
                               RegisterType::None,   ConditionType::None, 0x28};
+
     // 0xFx
     all_instructions[0xF0] = {InstructionType::LDH, AddressingMode::R_A8, RegisterType::A, RegisterType::None};
     all_instructions[0xF1] = {InstructionType::POP, AddressingMode::IMP, RegisterType::AF};
