@@ -28,10 +28,9 @@ class CPU
     void run();
 
    private:
-    auto fetch_instruction() noexcept -> const Instruction&;
-
+    // Fetch and execute functions
+    [[nodiscard]] auto fetch_instruction() noexcept -> const Instruction&;
     auto fetch_data(const Instruction& instruction) -> void;
-
     void execute(const Instruction& instruction);
 
     CPUContext context_;
