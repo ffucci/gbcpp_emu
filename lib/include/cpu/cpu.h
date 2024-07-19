@@ -1,8 +1,11 @@
 #pragma once
 
 #include <sys/types.h>
+#include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <stdexcept>
+#include <thread>
 #include <utility>
 
 #include "cartridge/cartridge.h"
@@ -34,6 +37,29 @@ struct CPURegisters
     uint8_t l;
     uint16_t pc;  // Program Counter
     uint16_t sp;  // Stack pointer
+
+    [[nodiscard]] std::string get_flags_string() const noexcept
+    {
+        std::string ret(4, '-');
+
+        if (f & CARRY) {
+            ret[3] = 'C';
+        }
+
+        if (f & HALF) {
+            ret[2] = 'H';
+        }
+
+        if (f & N_SUB) {
+            ret[1] = 'N';
+        }
+
+        if (f & ZERO) {
+            ret[0] = 'S';
+        }
+
+        return ret;
+    }
 };
 
 inline auto get_initial_state() -> CPURegisters
@@ -228,7 +254,6 @@ inline bool check_cond(CPUContext& context)
 {
     bool z = (context.registers.f & ZERO) != 0;
     bool c = (context.registers.f & CARRY) != 0;
-
     switch (context.instruction.condition) {
         case ConditionType::None:
             return true;
@@ -310,7 +335,7 @@ inline void push_handler(CPUContext& ctx, memory::MMU& memory)
     // emu_cycles(1);
     stack_push(ctx, memory, hi);
 
-    auto lo = (ctx.cpu_read_reg(ctx.instruction.r2)) & 0xFF;
+    auto lo = (ctx.cpu_read_reg(ctx.instruction.r1)) & 0xFF;
     // emu_cycles(1);
     stack_push(ctx, memory, lo);
 
@@ -367,18 +392,19 @@ inline void call_handler(CPUContext& ctx, memory::MMU& memory)
 
 inline void ret_handler(CPUContext& ctx, memory::MMU& memory)
 {
-    if (ctx.instruction.condition != ConditionType::None) {
-        // emu_cycles(1);
-    }
+    // if (ctx.instruction.condition != ConditionType::None) {
+    //     emu_cycles(1);
+    // }
 
     if (check_cond(ctx)) {
-        const auto lo = stack_pop(ctx, memory);
+        const uint16_t lo = stack_pop(ctx, memory);
         // emu_cycles(1);
-        const auto hi = stack_pop(ctx, memory);
+        const uint16_t hi = stack_pop(ctx, memory);
         // emu_cycles(1);
 
-        const auto ret_address = lo | (hi << 8);
+        const uint16_t ret_address = lo | (hi << 8);
         ctx.registers.pc = ret_address;
+        std::cout << std::format("{:04X}", ret_address) << std::endl;
         // emu_cycles(1);
     }
 }
@@ -448,6 +474,85 @@ inline void dec_handler(CPUContext& ctx, memory::MMU& memory)
     return;
 }
 
+inline void add_handler(CPUContext& ctx, memory::MMU& mmu)
+{
+    uint32_t val = ctx.cpu_read_reg(ctx.instruction.r1) + ctx.fetched_data;
+
+    [[maybe_unused]] bool is_16_bit = CPUContext::is_16_bit(ctx.instruction.r1);
+
+    // if(is_16_bit)
+    // {
+    //     emu_cycles(1);
+    // }
+
+    if (ctx.instruction.r1 == RegisterType::SP) {
+        val = ctx.cpu_read_reg(ctx.instruction.r1) + static_cast<char>(ctx.fetched_data);
+    }
+
+    int z = (val & 0xFF) == 0;
+    int h = (ctx.cpu_read_reg(ctx.instruction.r1) & 0xF) + (ctx.fetched_data & 0xF) >= 0x10;
+    int c = (ctx.cpu_read_reg(ctx.instruction.r1) & 0xFF) + (ctx.fetched_data & 0xFF) >= 0x100;
+
+    if (is_16_bit) {
+        z = 0xFF;
+        h = (ctx.cpu_read_reg(ctx.instruction.r1) & 0xFFF) + (ctx.fetched_data & 0xFFF) >= 0x1000;
+        uint32_t n =
+            static_cast<uint32_t>(ctx.cpu_read_reg(ctx.instruction.r1)) + static_cast<uint32_t>(ctx.fetched_data);
+        c = n >= 0x10000;
+    }
+
+    if (ctx.instruction.r1 == RegisterType::SP) {
+        z = 0;
+        h = (ctx.cpu_read_reg(ctx.instruction.r1) & 0xF) + (ctx.fetched_data & 0xF) >= 0x10;
+        c = (ctx.cpu_read_reg(ctx.instruction.r1) & 0xFF) + (ctx.fetched_data & 0xFF) >= 0x100;
+    }
+
+    ctx.cpu_set_reg(ctx.instruction.r1, val & 0xFFFF);
+    cpu_set_flag(ctx.registers.f, z, 0, h, c);
+}
+
+inline void adc_handler(CPUContext& ctx, memory::MMU& mmu)
+{
+    uint16_t u = ctx.fetched_data;
+    uint16_t a = ctx.registers.a;
+    uint16_t c = (ctx.registers.f & CARRY) != 0;
+
+    ctx.registers.a = (u + a + c) & 0xFF;
+
+    auto h = (a & 0xF) + (u & 0xF) + c > 0xF;
+    auto carry = (a + u + c) > 0xFF;
+
+    cpu_set_flag(ctx.registers.f, ctx.registers.a == 0, 0, h, carry);
+}
+
+inline void sub_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    uint16_t val = ctx.cpu_read_reg(ctx.instruction.r1) - ctx.fetched_data;
+    int z = (val == 0);
+    int h =
+        (static_cast<int>(ctx.cpu_read_reg(ctx.instruction.r1)) & 0xF) - (static_cast<int>(ctx.fetched_data) & 0xF) < 0;
+    int c = static_cast<int>(ctx.cpu_read_reg(ctx.instruction.r1)) - static_cast<int>(ctx.fetched_data) < 0;
+
+    ctx.cpu_set_reg(ctx.instruction.r1, val);
+    cpu_set_flag(ctx.registers.f, z, 1, h, c);
+}
+
+inline void sbc_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    auto cpu_flag_c = ((ctx.registers.f & CARRY) != 0);
+    uint16_t val = ctx.fetched_data + cpu_flag_c;
+
+    const auto r1_val = ctx.cpu_read_reg(ctx.instruction.r1);
+    int z = (r1_val - val == 0);
+    int h =
+        (static_cast<int>(r1_val) & 0xF) - (static_cast<int>(ctx.fetched_data) & 0xF) - (static_cast<int>(cpu_flag_c)) <
+        0;
+    int c = static_cast<int>(r1_val) - static_cast<int>(ctx.fetched_data) - (static_cast<int>(cpu_flag_c)) < 0;
+
+    ctx.cpu_set_reg(ctx.instruction.r1, r1_val - val);
+    cpu_set_flag(ctx.registers.f, z, 1, h, c);
+}
+
 static constexpr auto make_executors_table() -> ExecutorsTable
 {
     ExecutorsTable table_{};
@@ -459,6 +564,13 @@ static constexpr auto make_executors_table() -> ExecutorsTable
     table_[std::to_underlying(InstructionType::INC)] = inc_handler;
     table_[std::to_underlying(InstructionType::DEC)] = dec_handler;
 
+    // The details of these instructions need to be understood better
+    table_[std::to_underlying(InstructionType::ADD)] = add_handler;
+    table_[std::to_underlying(InstructionType::ADC)] = adc_handler;
+    table_[std::to_underlying(InstructionType::SUB)] = sub_handler;
+    table_[std::to_underlying(InstructionType::SBC)] = sbc_handler;
+
+    // Going to subroutines opcodes (CALL, RET, ...)
     table_[std::to_underlying(InstructionType::CALL)] = call_handler;
     table_[std::to_underlying(InstructionType::RET)] = ret_handler;
     table_[std::to_underlying(InstructionType::RETI)] = reti_handler;
@@ -491,16 +603,20 @@ class CPU
             auto& logger = logger::Logger::instance();
 
             logger.log(
-                "{:04X}: {} ({:02X}, {:02X}, {:02X}), A: {:02X}, BC:{:02X}{:02X}, DE:{:02X}{:02X}, HL:{:02X}{:02X}, "
-                "F:{:b}",
-                pc, get_instruction_name(context_.instruction.type), context_.current_opcode, memory_.read(pc + 1),
-                memory_.read(pc + 2), regs.a, regs.b, regs.c, regs.d, regs.e, regs.h, regs.l, regs.f);
+                "{:08X} - {:04X}: {} ({:02X}, {:02X}, {:02X}) \tA: {:02X}, BC:{:02X}{:02X}, DE:{:02X}{:02X}, "
+                "HL:{:02X}{:02X}, "
+                "F:{}",
+                ticks_, pc, get_instruction_name(context_.instruction.type), context_.current_opcode,
+                memory_.read(pc + 1), memory_.read(pc + 2), regs.a, regs.b, regs.c, regs.d, regs.e, regs.h, regs.l,
+                regs.get_flags_string());
 
             if (context_.instruction.type == InstructionType::NONE) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 throw std::runtime_error("Instruction is not valid or not yet added.");
             }
 
             execute(context_.instruction);
+            ticks_++;
         }
     }
 
@@ -706,6 +822,8 @@ class CPU
 
     CPUContext context_;
     memory::MMU memory_;
+
+    size_t ticks_{0};
     static constexpr auto instruction_set_ = initialize_instruction_set();
     static constexpr auto executors_ = make_executors_table();
 };

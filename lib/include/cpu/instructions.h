@@ -139,6 +139,8 @@ constexpr std::array<Instruction, 0x100> initialize_instruction_set()
 
     all_instructions[0x06] = {InstructionType::LD, AddressingMode::R_D8, RegisterType::B};
     all_instructions[0x08] = {InstructionType::LD, AddressingMode::A16_R, RegisterType::None, RegisterType::SP};
+
+    all_instructions[0x09] = {InstructionType::ADD, AddressingMode::R_R, RegisterType::HL, RegisterType::BC};
     all_instructions[0x0A] = {InstructionType::LD, AddressingMode::R_MR, RegisterType::A, RegisterType::BC};
 
     all_instructions[0x0B] = {InstructionType::DEC, AddressingMode::R, RegisterType::BC};
@@ -154,8 +156,9 @@ constexpr std::array<Instruction, 0x100> initialize_instruction_set()
     all_instructions[0x15] = {InstructionType::DEC, AddressingMode::R, RegisterType::D};
     all_instructions[0x16] = {InstructionType::LD, AddressingMode::R_D8, RegisterType::B};
     all_instructions[0x18] = {InstructionType::JR, AddressingMode::D8};
-
+    all_instructions[0x19] = {InstructionType::ADD, AddressingMode::R_R, RegisterType::HL, RegisterType::DE};
     all_instructions[0x1A] = {InstructionType::LD, AddressingMode::R_MR, RegisterType::A, RegisterType::DE};
+
     // INC-DEC
     all_instructions[0x1B] = {InstructionType::DEC, AddressingMode::R, RegisterType::DE};
     all_instructions[0x1C] = {InstructionType::INC, AddressingMode::R, RegisterType::E};
@@ -176,6 +179,8 @@ constexpr std::array<Instruction, 0x100> initialize_instruction_set()
     // (0x28) -> JR Z, r8
     all_instructions[0x28] = {
         InstructionType::JR, AddressingMode::D8, RegisterType::None, RegisterType::None, ConditionType::Z};
+
+    all_instructions[0x29] = {InstructionType::ADD, AddressingMode::R_R, RegisterType::HL, RegisterType::HL};
 
     all_instructions[0x2A] = {InstructionType::LD, AddressingMode::R_HLI, RegisterType::A, RegisterType::HL};
     all_instructions[0x2B] = {InstructionType::DEC, AddressingMode::R, RegisterType::HL};
@@ -201,6 +206,7 @@ constexpr std::array<Instruction, 0x100> initialize_instruction_set()
     // JR C, r8
     all_instructions[0x38] = {
         InstructionType::JR, AddressingMode::D8, RegisterType::None, RegisterType::None, ConditionType::C};
+    all_instructions[0x39] = {InstructionType::ADD, AddressingMode::R_R, RegisterType::HL, RegisterType::SP};
 
     all_instructions[0x3A] = {InstructionType::LD, AddressingMode::R_HLD, RegisterType::A, RegisterType::HL};
 
@@ -283,8 +289,44 @@ constexpr std::array<Instruction, 0x100> initialize_instruction_set()
     all_instructions[0x7E] = {InstructionType::LD, AddressingMode::R_MR, RegisterType::A, RegisterType::HL};
     all_instructions[0x7F] = {InstructionType::LD, AddressingMode::R_R, RegisterType::A, RegisterType::A};
 
+    // 0x8x
+    all_instructions[0x80] = {InstructionType::ADD, AddressingMode::R_R, RegisterType::A, RegisterType::B};
+    all_instructions[0x81] = {InstructionType::ADD, AddressingMode::R_R, RegisterType::A, RegisterType::C};
+    all_instructions[0x82] = {InstructionType::ADD, AddressingMode::R_R, RegisterType::A, RegisterType::D};
+    all_instructions[0x83] = {InstructionType::ADD, AddressingMode::R_R, RegisterType::A, RegisterType::E};
+    all_instructions[0x84] = {InstructionType::ADD, AddressingMode::R_R, RegisterType::A, RegisterType::H};
+    all_instructions[0x85] = {InstructionType::ADD, AddressingMode::R_R, RegisterType::A, RegisterType::L};
+    all_instructions[0x86] = {InstructionType::ADD, AddressingMode::R_MR, RegisterType::A, RegisterType::HL};
+    all_instructions[0x87] = {InstructionType::ADD, AddressingMode::R_R, RegisterType::A, RegisterType::A};
+    all_instructions[0x88] = {InstructionType::ADC, AddressingMode::R_R, RegisterType::A, RegisterType::B};
+    all_instructions[0x89] = {InstructionType::ADC, AddressingMode::R_R, RegisterType::A, RegisterType::C};
+    all_instructions[0x8A] = {InstructionType::ADC, AddressingMode::R_R, RegisterType::A, RegisterType::D};
+    all_instructions[0x8B] = {InstructionType::ADC, AddressingMode::R_R, RegisterType::A, RegisterType::E};
+    all_instructions[0x8C] = {InstructionType::ADC, AddressingMode::R_R, RegisterType::A, RegisterType::H};
+    all_instructions[0x8D] = {InstructionType::ADC, AddressingMode::R_R, RegisterType::A, RegisterType::L};
+    all_instructions[0x8E] = {InstructionType::ADC, AddressingMode::R_MR, RegisterType::A, RegisterType::HL};
+    all_instructions[0x8F] = {InstructionType::ADC, AddressingMode::R_R, RegisterType::A, RegisterType::A};
+
+    // 0x9X
+    all_instructions[0x90] = {InstructionType::SUB, AddressingMode::R_R, RegisterType::A, RegisterType::B},
+    all_instructions[0x91] = {InstructionType::SUB, AddressingMode::R_R, RegisterType::A, RegisterType::C},
+    all_instructions[0x92] = {InstructionType::SUB, AddressingMode::R_R, RegisterType::A, RegisterType::D},
+    all_instructions[0x93] = {InstructionType::SUB, AddressingMode::R_R, RegisterType::A, RegisterType::E},
+    all_instructions[0x94] = {InstructionType::SUB, AddressingMode::R_R, RegisterType::A, RegisterType::H},
+    all_instructions[0x95] = {InstructionType::SUB, AddressingMode::R_R, RegisterType::A, RegisterType::L},
+    all_instructions[0x96] = {InstructionType::SUB, AddressingMode::R_MR, RegisterType::A, RegisterType::HL},
+    all_instructions[0x97] = {InstructionType::SUB, AddressingMode::R_R, RegisterType::A, RegisterType::A},
+    all_instructions[0x98] = {InstructionType::SBC, AddressingMode::R_R, RegisterType::A, RegisterType::B},
+    all_instructions[0x99] = {InstructionType::SBC, AddressingMode::R_R, RegisterType::A, RegisterType::C},
+    all_instructions[0x9A] = {InstructionType::SBC, AddressingMode::R_R, RegisterType::A, RegisterType::D},
+    all_instructions[0x9B] = {InstructionType::SBC, AddressingMode::R_R, RegisterType::A, RegisterType::E},
+    all_instructions[0x9C] = {InstructionType::SBC, AddressingMode::R_R, RegisterType::A, RegisterType::H},
+    all_instructions[0x9D] = {InstructionType::SBC, AddressingMode::R_R, RegisterType::A, RegisterType::L},
+    all_instructions[0x9E] = {InstructionType::SBC, AddressingMode::R_MR, RegisterType::A, RegisterType::HL},
+    all_instructions[0x9F] = {InstructionType::SBC, AddressingMode::R_R, RegisterType::A, RegisterType::A},
+
     // XOR instruction
-    all_instructions[0xAF] = {InstructionType::XOR, AddressingMode::R, RegisterType::A};
+        all_instructions[0xAF] = {InstructionType::XOR, AddressingMode::R, RegisterType::A};
 
     // 0xCx
     all_instructions[0xC0] = {
