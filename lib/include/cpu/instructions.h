@@ -8,6 +8,7 @@
 namespace gameboy::cpu {
 
 static constexpr uint16_t NUM_INSTRUCTION_TYPES = 48;
+static constexpr uint16_t NUM_OPCODES = 0x100;
 
 enum class RegisterType : uint8_t
 {
@@ -125,9 +126,9 @@ struct Instruction
     uint8_t parameter;
 };
 
-constexpr std::array<Instruction, 0x100> initialize_instruction_set()
+constexpr std::array<Instruction, NUM_OPCODES> initialize_instruction_set()
 {
-    std::array<Instruction, 0x100> all_instructions{};
+    std::array<Instruction, NUM_OPCODES> all_instructions{};
     all_instructions[0x00] = {InstructionType::NOP, AddressingMode::IMP};
 
     // LD 0x

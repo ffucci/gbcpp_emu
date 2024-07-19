@@ -11,7 +11,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 add_library(gbemu_lib
     src/cpu.cpp
-    src/executor.cpp
+    src/instruction_handlers.cpp
     src/instructions.cpp
     src/mmu.cpp
     src/ram.cpp
