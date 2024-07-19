@@ -158,6 +158,30 @@ struct CPUContext
     }
 };
 
+inline void stack_push(CPUContext& context, memory::MMU& memory, uint8_t value)
+{
+    context.registers.sp--;
+    memory.write(context.registers.sp, value);
+}
+
+inline void stack_push16(CPUContext& context, memory::MMU& memory, uint16_t value)
+{
+    stack_push(context, memory, (value >> 8) & 0xFF);
+    stack_push(context, memory, value & 0xFF);
+}
+
+inline auto stack_pop(CPUContext& context, memory::MMU& memory) -> uint8_t
+{
+    return memory.read(context.registers.sp++);
+}
+
+inline auto stack_pop16(CPUContext& context, memory::MMU& memory) -> uint8_t
+{
+    const auto lo = stack_pop(context, memory);
+    const auto hi = stack_pop(context, memory);
+    return lo | (hi << 8);
+}
+
 using Handler = void (*)(CPUContext& context, memory::MMU&);
 using ExecutorsTable = std::array<Handler, NUM_INSTRUCTION_TYPES>;
 
@@ -206,14 +230,6 @@ inline bool check_cond(CPUContext& context)
     return false;
 }
 
-inline void jp_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    if (check_cond(ctx)) {
-        ctx.registers.pc = ctx.fetched_data;
-        // emu_cycles(1)
-    }
-}
-
 inline void ld_handler(CPUContext& ctx, memory::MMU& memory)
 {
     if (ctx.destination_is_mem) {
@@ -256,6 +272,93 @@ inline void ldh_handler(CPUContext& ctx, memory::MMU& memory)
     // emu_cycles(1);
 }
 
+inline void push_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    const auto value_to_push = ctx.cpu_read_reg(ctx.instruction.r1);
+    auto hi = (value_to_push >> 8) & 0xFF;
+    // emu_cycles(1);
+    stack_push(ctx, memory, hi);
+
+    auto lo = (ctx.cpu_read_reg(ctx.instruction.r2)) & 0xFF;
+    // emu_cycles(1);
+    stack_push(ctx, memory, lo);
+
+    // emu_cycles(1);
+}
+
+inline void pop_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    const auto lo = stack_pop(ctx, memory);
+    // emu_cycles(1);
+    const auto hi = stack_pop(ctx, memory);
+    // emu_cycles(1);
+
+    const auto value = lo | (hi << 8);
+    const auto reg1 = ctx.instruction.r1;
+
+    if (reg1 == RegisterType::AF) {
+        ctx.cpu_set_reg(reg1, value & 0xFFF0);  // Takes the value from memory and puts into reg
+        return;
+    }
+
+    ctx.cpu_set_reg(reg1, value);  // Takes the value from memory and puts into reg
+}
+
+inline void jump_to_addr(CPUContext& ctx, memory::MMU& memory, uint16_t addr, bool push_pc)
+{
+    if (check_cond(ctx)) {
+        if (push_pc) {
+            // emu_cycles(2);
+            stack_push16(ctx, memory, ctx.registers.pc);
+        }
+
+        ctx.registers.pc = addr;
+        // emu_cycles(1)
+    }
+}
+
+inline void jp_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    jump_to_addr(ctx, memory, ctx.fetched_data, false);
+}
+
+inline void jr_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    auto offset = static_cast<char>(ctx.fetched_data & 0xFF);
+    const auto address = ctx.registers.pc + offset;
+    jump_to_addr(ctx, memory, address, false);
+}
+
+inline void call_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    jump_to_addr(ctx, memory, ctx.fetched_data, true);
+}
+
+inline void ret_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    if (ctx.instruction.condition != ConditionType::None) {
+        // emu_cycles(1);
+    }
+
+    if (check_cond(ctx)) {
+        const auto lo = stack_pop(ctx, memory);
+        // emu_cycles(1);
+        const auto hi = stack_pop(ctx, memory);
+        // emu_cycles(1);
+
+        const auto ret_address = lo | (hi << 8);
+        ctx.registers.pc = ret_address;
+        // emu_cycles(1);
+    }
+}
+
+// returning from interrupt
+inline void reti_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    ctx.interrupt_masked = true;
+    ret_handler(ctx, memory);
+}
+
 static constexpr auto make_executors_table() -> ExecutorsTable
 {
     ExecutorsTable table_{};
@@ -263,8 +366,14 @@ static constexpr auto make_executors_table() -> ExecutorsTable
     table_[std::to_underlying(InstructionType::NOP)] = nop_handler;
     table_[std::to_underlying(InstructionType::XOR)] = xor_handler;
     table_[std::to_underlying(InstructionType::JP)] = jp_handler;
+    table_[std::to_underlying(InstructionType::JR)] = jr_handler;
+    table_[std::to_underlying(InstructionType::CALL)] = call_handler;
+    table_[std::to_underlying(InstructionType::RET)] = ret_handler;
+    table_[std::to_underlying(InstructionType::RETI)] = reti_handler;
     table_[std::to_underlying(InstructionType::LD)] = ld_handler;
     table_[std::to_underlying(InstructionType::LDH)] = ldh_handler;
+    table_[std::to_underlying(InstructionType::PUSH)] = push_handler;
+    table_[std::to_underlying(InstructionType::POP)] = pop_handler;
     table_[std::to_underlying(InstructionType::DI)] = di_handler;
     return table_;
 }
