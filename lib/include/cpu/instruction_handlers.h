@@ -98,6 +98,9 @@ void xor_handler(CPUContext& ctx, memory::MMU& memory);
 void or_handler(CPUContext& ctx, memory::MMU& memory);
 void cp_handler(CPUContext& ctx, memory::MMU& memory);
 
+// ************************* PREFIX CB ******************************** //
+void cb_handler(CPUContext& ctx, memory::MMU& memory);
+
 constexpr auto make_executors_table() -> const ExecutorsTable
 {
     ExecutorsTable table_{};
@@ -115,9 +118,12 @@ constexpr auto make_executors_table() -> const ExecutorsTable
     table_[std::to_underlying(InstructionType::SBC)] = sbc_handler;
 
     table_[std::to_underlying(InstructionType::XOR)] = xor_handler;
-    table_[std::to_underlying(InstructionType::OR)] = add_handler;
-    table_[std::to_underlying(InstructionType::AND)] = adc_handler;
-    table_[std::to_underlying(InstructionType::CP)] = sub_handler;
+    table_[std::to_underlying(InstructionType::OR)] = or_handler;
+    table_[std::to_underlying(InstructionType::AND)] = and_handler;
+    table_[std::to_underlying(InstructionType::CP)] = cp_handler;
+    // CB prefix
+    table_[std::to_underlying(InstructionType::CB)] = cb_handler;
+
     // Going to subroutines opcodes (CALL, RET, ...)
     table_[std::to_underlying(InstructionType::CALL)] = call_handler;
     table_[std::to_underlying(InstructionType::RET)] = ret_handler;

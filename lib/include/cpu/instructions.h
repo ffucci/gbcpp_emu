@@ -126,6 +126,18 @@ struct Instruction
     uint8_t parameter;
 };
 
+constexpr RegisterType register_lookup[] = {RegisterType::B, RegisterType::C, RegisterType::D,  RegisterType::E,
+                                            RegisterType::H, RegisterType::L, RegisterType::HL, RegisterType::A};
+
+constexpr auto decode_reg(uint8_t reg) -> RegisterType
+{
+    if (reg > 0b111) {
+        return RegisterType::None;
+    }
+
+    return register_lookup[reg];
+}
+
 constexpr std::array<Instruction, NUM_OPCODES> initialize_instruction_set()
 {
     std::array<Instruction, NUM_OPCODES> all_instructions{};
@@ -386,6 +398,8 @@ constexpr std::array<Instruction, NUM_OPCODES> initialize_instruction_set()
 
     all_instructions[0xCA] = {
         InstructionType::JP, AddressingMode::D16, RegisterType::None, RegisterType::None, ConditionType::Z};
+    all_instructions[0xCB] = {InstructionType::CB, AddressingMode::D8};
+
     all_instructions[0xCC] = {
         InstructionType::CALL, AddressingMode::D16, RegisterType::None, RegisterType::None, ConditionType::Z};
 

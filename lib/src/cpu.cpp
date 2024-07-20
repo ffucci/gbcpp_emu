@@ -1,4 +1,5 @@
 #include "cpu/cpu.h"
+#include <cstdint>
 
 namespace gameboy::cpu {
 
@@ -34,16 +35,16 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
             return;
         }
         case AddressingMode::R: {
-            context_.fetched_data = context_.cpu_read_reg(instruction.r1);
+            context_.fetched_data = context_.read_reg(instruction.r1);
             return;
         };
         case AddressingMode::R_R: {
-            context_.fetched_data = context_.cpu_read_reg(instruction.r2);
+            context_.fetched_data = context_.read_reg(instruction.r2);
             return;
         }
 
         case AddressingMode::R_MR: {
-            auto addr = context_.cpu_read_reg(instruction.r2);
+            auto addr = context_.read_reg(instruction.r2);
             if (instruction.r1 == RegisterType::C) {
                 addr |= 0xFF00;
             }
@@ -54,8 +55,8 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
         }
         // memory register to registers
         case AddressingMode::MR_R: {
-            context_.fetched_data = context_.cpu_read_reg(instruction.r2);
-            context_.memory_destination = context_.cpu_read_reg(instruction.r1);
+            context_.fetched_data = context_.read_reg(instruction.r2);
+            context_.memory_destination = context_.read_reg(instruction.r1);
             context_.destination_is_mem = true;  // understand how to optimize
 
             if (instruction.r1 == RegisterType::C) {
@@ -71,34 +72,34 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
             return;
         }
         case AddressingMode::R_HLI: {
-            context_.fetched_data = memory_.read(context_.cpu_read_reg(instruction.r2));
+            context_.fetched_data = memory_.read(context_.read_reg(instruction.r2));
             // emu_cycles(1)
-            const auto new_val = context_.cpu_read_reg(RegisterType::HL) + 1;
-            context_.cpu_set_reg(RegisterType::HL, new_val);
+            const uint16_t new_val = context_.read_reg(RegisterType::HL) + 1;
+            context_.set_reg(RegisterType::HL, new_val);
             return;
         }
         case AddressingMode::R_HLD: {
-            context_.fetched_data = memory_.read(context_.cpu_read_reg(instruction.r2));
+            context_.fetched_data = memory_.read(context_.read_reg(instruction.r2));
             // emu_cycles(1)
-            const auto new_val = context_.cpu_read_reg(RegisterType::HL) - 1;
-            context_.cpu_set_reg(RegisterType::HL, new_val);
+            const uint16_t new_val = context_.read_reg(RegisterType::HL) - 1;
+            context_.set_reg(RegisterType::HL, new_val);
             return;
         }
 
         case AddressingMode::HLI_R: {
-            context_.fetched_data = context_.cpu_read_reg(instruction.r2);  // What to increment read from registry
-            context_.memory_destination = context_.cpu_read_reg(instruction.r1);
+            context_.fetched_data = context_.read_reg(instruction.r2);  // What to increment read from registry
+            context_.memory_destination = context_.read_reg(instruction.r1);
             context_.destination_is_mem = true;
-            const auto new_val = context_.cpu_read_reg(RegisterType::HL) + 1;
-            context_.cpu_set_reg(RegisterType::HL, new_val);
+            const auto new_val = context_.read_reg(RegisterType::HL) + 1;
+            context_.set_reg(RegisterType::HL, new_val);
             return;
         }
         case AddressingMode::HLD_R: {
-            context_.fetched_data = context_.cpu_read_reg(instruction.r2);  // What to increment read from registry
-            context_.memory_destination = context_.cpu_read_reg(instruction.r1);
+            context_.fetched_data = context_.read_reg(instruction.r2);  // What to increment read from registry
+            context_.memory_destination = context_.read_reg(instruction.r1);
             context_.destination_is_mem = true;
-            const auto new_val = context_.cpu_read_reg(RegisterType::HL) - 1;
-            context_.cpu_set_reg(RegisterType::HL, new_val);
+            const auto new_val = context_.read_reg(RegisterType::HL) - 1;
+            context_.set_reg(RegisterType::HL, new_val);
             return;
         }
 
@@ -144,7 +145,7 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
             context_.memory_destination = (lo | (hi << 8));
             context_.destination_is_mem = true;
             regs.pc += 2;
-            context_.fetched_data = memory_.read(context_.cpu_read_reg(instruction.r2));
+            context_.fetched_data = memory_.read(context_.read_reg(instruction.r2));
             return;
         }
         case AddressingMode::MR_D8: {
@@ -153,14 +154,14 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
             context_.fetched_data = memory_.read(regs.pc);
             // emu_cycles(1)
             regs.pc++;
-            context_.memory_destination = context_.cpu_read_reg(instruction.r1);
+            context_.memory_destination = context_.read_reg(instruction.r1);
             context_.destination_is_mem = true;
             return;
         }
         case AddressingMode::MR: {
             auto& regs = context_.registers;
 
-            context_.memory_destination = context_.cpu_read_reg(instruction.r1);
+            context_.memory_destination = context_.read_reg(instruction.r1);
             context_.destination_is_mem = true;
             context_.fetched_data = memory_.read(context_.memory_destination);
             // emu_cycles(1)

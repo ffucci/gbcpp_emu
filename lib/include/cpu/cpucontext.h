@@ -83,7 +83,7 @@ struct CPUContext
     bool destination_is_mem{false};
 
     // Read registry
-    auto cpu_read_reg(RegisterType rt) -> uint16_t
+    auto read_reg(RegisterType rt) -> uint16_t
     {
         using gameboy::cpu::RegisterType;
         switch (rt) {
@@ -121,7 +121,7 @@ struct CPUContext
         }
     }
 
-    void cpu_set_reg(RegisterType rt, uint16_t val)
+    void set_reg(RegisterType rt, uint16_t val)
     {
         switch (rt) {
             case RegisterType::A:
@@ -170,6 +170,64 @@ struct CPUContext
                 registers.sp = val;
                 break;
             case RegisterType::None:
+                break;
+
+            default:
+                throw std::runtime_error("Invalid register type...");
+        }
+    }
+
+    auto read_reg8(RegisterType rt) -> uint8_t
+    {
+        using gameboy::cpu::RegisterType;
+        switch (rt) {
+            case RegisterType::A:
+                return registers.a;
+            case RegisterType::F:
+                return registers.f;
+            case RegisterType::B:
+                return registers.b;
+            case RegisterType::C:
+                return registers.c;
+            case RegisterType::D:
+                return registers.d;
+            case RegisterType::E:
+                return registers.e;
+            case RegisterType::H:
+                return registers.h;
+            case RegisterType::L:
+                return registers.l;
+            default:
+                return 0;
+        }
+    }
+
+    void set_reg8(RegisterType rt, uint8_t val)
+    {
+        switch (rt) {
+            case RegisterType::A:
+                registers.a = val & 0xFF;
+                break;
+            case RegisterType::F:
+                registers.f = val & 0xFF;
+                break;
+            case RegisterType::B:
+                registers.b = val & 0xFF;
+                break;
+            case RegisterType::C: {
+                registers.c = val & 0xFF;
+            } break;
+            case RegisterType::D:
+                registers.d = val & 0xFF;
+                break;
+            case RegisterType::E:
+                registers.e = val & 0xFF;
+                break;
+            case RegisterType::H:
+                registers.h = val & 0xFF;
+                break;
+            case RegisterType::L:
+                registers.l = val & 0xFF;
                 break;
 
             default:

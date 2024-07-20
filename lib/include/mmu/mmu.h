@@ -78,7 +78,7 @@ class MMU
         }
 
         if (address < CHR_RAM_LIMIT) {
-            throw std::runtime_error("NOT IMPL");
+            throw std::runtime_error(std::format("NOT IMPL {:X}", address));
         }
 
         if (address < 0xC000) {
@@ -98,7 +98,9 @@ class MMU
         }
 
         if (address < 0xFEA0) {
-            throw std::runtime_error("NOT IMPL");
+            auto& logger = logger::Logger::instance();
+            logger.log("Unsuppored bus write {:04X}", address);
+            return;
         }
 
         if (address < 0xFF00) {
