@@ -39,10 +39,7 @@ class MMU
 
     auto write16(uint16_t address, uint8_t value) -> void;
 
-    auto ie_register() -> uint8_t
-    {
-        return int_enable_register_;
-    }
+    auto ie_register() -> uint8_t;
 
    private:
     cartridge::Cartridge& cartridge_;
@@ -52,6 +49,8 @@ class MMU
 
     static constexpr uint16_t HRAM_LIMIT{0x8000};
     static constexpr uint16_t CHR_RAM_LIMIT{0xA000};
+
+    static constexpr bool DEBUG{false};
 };
 
 }  // namespace gameboy::memory

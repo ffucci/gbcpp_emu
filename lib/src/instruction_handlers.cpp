@@ -1,5 +1,6 @@
 #include "cpu/instruction_handlers.h"
 #include <cstdint>
+#include <utility>
 #include "utils/logger.h"
 
 namespace gameboy::cpu {
@@ -252,20 +253,13 @@ void ld_handler(CPUContext& ctx, memory::MMU& memory)
         return;
     }
 
-    auto& logger = logger::Logger::instance();
     // In other cases just take the fetched data and move to register 1
     ctx.set_reg(ctx.instruction.r1, ctx.fetched_data);
 
     if constexpr (DEBUG) {
-        logger.log("---------> LD {:02X} reg, {:02X} data", std::to_underlying(ctx.instruction.r1), ctx.fetched_data);
-        logger.log("---------> Reg data, {:02X}", ctx.read_reg(ctx.instruction.r1));
-        logger.log("---------> Reg data2, {:X}", ctx.registers.l);
-        logger.log(
-            "{:04X}: {} ({:02X}, {:02X}, {:02X}), A: {:02X}, BC:{:02X}{:02X}, DE:{:02X}{:02X}, HL:{:02X}{:02X}, "
-            "F:{:b}",
-            ctx.registers.pc, get_instruction_name(ctx.instruction.type), ctx.current_opcode,
-            memory.read(ctx.registers.pc + 1), memory.read(ctx.registers.pc + 2), ctx.registers.a, ctx.registers.b,
-            ctx.registers.c, ctx.registers.d, ctx.registers.e, ctx.registers.h, ctx.registers.l, ctx.registers.f);
+        auto& logger = logger::Logger::instance();
+
+        logger.log("Fetched data {:04X}", ctx.fetched_data);
     }
 }
 bool check_cond(CPUContext& context)

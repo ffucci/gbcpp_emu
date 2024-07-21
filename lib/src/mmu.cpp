@@ -61,6 +61,11 @@ auto MMU::read16(uint16_t address) const -> uint16_t
 }
 auto MMU::write(uint16_t address, uint8_t value) -> void
 {
+    if constexpr (DEBUG) {
+        auto& logger = logger::Logger::instance();
+        logger.log("WRITE> address {:04X} , value {:04X}", address, value);
+    }
+
     if (address < HRAM_LIMIT) {
         cartridge_.write(address, value);
         return;
@@ -117,5 +122,9 @@ auto MMU::write16(uint16_t address, uint8_t value) -> void
 {
     write(address + 1, (value >> 8) & 0xFF);
     write(address, value & 0xFF);
+}
+auto MMU::ie_register() -> uint8_t
+{
+    return int_enable_register_;
 }
 }  // namespace gameboy::memory
