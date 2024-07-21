@@ -8,7 +8,7 @@ namespace gameboy::memory {
 class RAM
 {
    public:
-    auto hram_read(uint16_t address) -> uint8_t
+    auto hram_read(uint16_t address) const noexcept -> uint8_t
     {
         address -= HRAM_OFFSET;
         return hram_[address];
@@ -20,7 +20,7 @@ class RAM
         hram_[address] = value;
     }
 
-    auto wram_read(uint16_t address) -> uint8_t
+    auto wram_read(uint16_t address) const noexcept -> uint8_t
     {
         address -= WRAM_OFFSET;
         return wram_[address];
