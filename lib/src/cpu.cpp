@@ -1,5 +1,7 @@
 #include "cpu/cpu.h"
 #include <cstdint>
+#include <stop_token>
+#include "cpu/cpucontext.h"
 
 namespace gameboy::cpu {
 
@@ -199,32 +201,54 @@ auto CPU::fetch_instruction() noexcept -> const Instruction&
     context_.current_opcode = memory_.read(registers.pc++);
     return instruction_set_[context_.current_opcode];
 }
-void CPU::run()
+void CPU::run(std::stop_token token)
 {
     context_.state = CPUState::RUNNING;
-    auto& regs = context_.registers;
 
-    while (context_.state != CPUState::HALT) {
-        auto pc = regs.pc;
-        context_.instruction = fetch_instruction();
-        fetch_data(context_.instruction);
-        auto& logger = logger::Logger::instance();
-
-        logger.log(
-            "{:08X} - {:04X}: {} ({:02X}, {:02X}, {:02X}) \tA: {:02X}, BC:{:02X}{:02X}, DE:{:02X}{:02X}, "
-            "HL:{:02X}{:02X}, "
-            "F:{}",
-            ticks_, pc, get_instruction_name(context_.instruction.type), context_.current_opcode, memory_.read(pc + 1),
-            memory_.read(pc + 2), regs.a, regs.b, regs.c, regs.d, regs.e, regs.h, regs.l, regs.get_flags_string());
-
-        if (context_.instruction.type == InstructionType::NONE) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            throw std::runtime_error("Instruction is not valid or not yet added.");
+    while (!token.stop_requested()) {
+        if (context_.state == CPUState::RUNNING) {
+            step();
+        } else {
+            // emu_cycles(1);
+            if (context_.interrupt_flags) {
+                context_.state = CPUState::RUNNING;
+            }
         }
 
-        execute(context_.instruction);
+        if (context_.master_interrupt_enabled) {
+            handler_.handle_interrupts(context_, memory_);
+            context_.enabling_ime = false;
+        }
+
+        if (context_.enabling_ime) {
+            context_.master_interrupt_enabled = true;
+        }
         ticks_++;
     }
+}
+
+void CPU::step()
+{
+    auto& regs = context_.registers;
+
+    auto pc = regs.pc;
+    context_.instruction = fetch_instruction();
+    fetch_data(context_.instruction);
+    auto& logger = logger::Logger::instance();
+
+    logger.log(
+        "{:08X} - {:04X}: {} ({:02X}, {:02X}, {:02X}) \tA: {:02X}, BC:{:02X}{:02X}, DE:{:02X}{:02X}, "
+        "HL:{:02X}{:02X}, "
+        "F:{}",
+        ticks_, pc, get_instruction_name(context_.instruction.type), context_.current_opcode, memory_.read(pc + 1),
+        memory_.read(pc + 2), regs.a, regs.b, regs.c, regs.d, regs.e, regs.h, regs.l, regs.get_flags_string());
+
+    if (context_.instruction.type == InstructionType::NONE) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        throw std::runtime_error("Instruction is not valid or not yet added.");
+    }
+
+    execute(context_.instruction);
 }
 
 }  // namespace gameboy::cpu

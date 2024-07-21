@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <stdexcept>
+#include <string>
+
 #include "cpu/instructions.h"
 
 namespace gameboy::cpu {
@@ -11,6 +14,66 @@ static constexpr uint8_t HALF = {1 << 5};
 static constexpr uint8_t CARRY = {1 << 4};
 
 static constexpr bool DEBUG{false};
+
+#define BIT_SET(a, n, on)   \
+    {                       \
+        if (on)             \
+            a |= (1 << n);  \
+        else                \
+            a &= ~(1 << n); \
+    }
+
+// ************************* CPU UTILITY *************************** //
+
+// TODO: Fix since it is wrong...
+inline void cpu_set_flag_late(uint8_t& flags, uint8_t zero, uint8_t n, uint8_t half, uint8_t carry)
+{
+    const auto bz = (zero << 7);
+    const auto bn = (n << 6);
+    const auto bh = (half << 5);
+    const auto bc = (carry << 4);
+    flags |= (flags & ~bz) | (-(zero != 0xFF) & bz);
+    flags |= (flags & ~bn) | (-(n != 0xFF) & bn);
+    flags |= (flags & ~bh) | (-(half != 0xFF) & bh);
+    flags |= (flags & ~bc) | (-(carry != 0xFF) & bc);
+}
+
+inline void cpu_set_flag(uint8_t& flags, char zero, char n, char half, char carry)
+{
+    const bool is_zero = (zero != 0);
+    const bool is_n = (n != 0);
+    const bool is_half = (half != 0);
+    const bool is_carry = (carry != 0);
+
+    const auto mbz = (1 << 7);
+    const auto mbn = (1 << 6);
+    const auto mbh = (1 << 5);
+    const auto mbc = (1 << 4);
+
+    flags ^= (zero != -1 ? -1 : 0) & ((-is_zero ^ flags) & mbz);
+    flags ^= (n != -1 ? -1 : 0) & ((-is_n ^ flags) & mbn);
+    flags ^= (half != -1 ? -1 : 0) & ((-is_half ^ flags) & mbh);
+    flags ^= (carry != -1 ? -1 : 0) & ((-is_carry ^ flags) & mbc);
+}
+
+inline void cpu_set_flag_branch(uint8_t& flags, char z, char n, char h, char c)
+{
+    if (z != -1) {
+        BIT_SET(flags, 7, z);
+    }
+
+    if (n != -1) {
+        BIT_SET(flags, 6, n);
+    }
+
+    if (h != -1) {
+        BIT_SET(flags, 5, h);
+    }
+
+    if (c != -1) {
+        BIT_SET(flags, 4, c);
+    }
+}
 
 struct CPURegisters
 {
@@ -49,6 +112,26 @@ struct CPURegisters
 
         return ret;
     }
+
+    [[nodiscard]] auto z_flag() const noexcept
+    {
+        return (f & ZERO) != 0;
+    }
+
+    [[nodiscard]] auto n_flag() const noexcept
+    {
+        return (f & N_SUB) != 0;
+    }
+
+    [[nodiscard]] auto h_flag() const noexcept
+    {
+        return (f & HALF) != 0;
+    }
+
+    [[nodiscard]] auto c_flag() const noexcept
+    {
+        return (f & CARRY) != 0;
+    }
 };
 
 inline auto get_initial_state() -> CPURegisters
@@ -71,15 +154,17 @@ constexpr uint16_t reverse(uint16_t n)
 
 struct CPUContext
 {
-    CPURegisters registers;
-    uint16_t fetched_data;
-    uint16_t memory_destination;
-    uint8_t current_opcode;
+    CPURegisters registers{};
+    uint16_t fetched_data{};
+    uint16_t memory_destination{};
+    uint8_t current_opcode{};
+    uint8_t interrupt_flags{};
 
     Instruction instruction;
     CPUState state;
 
-    bool interrupt_masked{false};
+    bool master_interrupt_enabled{false};
+    bool enabling_ime{false};
     bool destination_is_mem{false};
 
     // Read registry

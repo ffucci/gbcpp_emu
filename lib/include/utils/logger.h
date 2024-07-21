@@ -49,7 +49,7 @@ class Logger
             while (!token.stop_requested()) {
                 std::string res;
                 while (buffer_.pop(res)) {
-                    std::cout << LogColors::INFO << res << LogColors::RESET << '\n';
+                    std::cout << LogColors::INFO << res << LogColors::RESET << std::endl;
                 }
                 std::this_thread::sleep_for(std::chrono::microseconds(10));
             }

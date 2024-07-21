@@ -6,7 +6,7 @@ namespace gameboy::cpu {
 
 void sbc_handler(CPUContext& ctx, memory::MMU& memory)
 {
-    auto cpu_flag_c = ((ctx.registers.f & CARRY) != 0);
+    auto cpu_flag_c = ctx.registers.c_flag();
     uint16_t val = ctx.fetched_data + cpu_flag_c;
 
     const uint16_t r1_val = ctx.read_reg(ctx.instruction.r1);
@@ -137,7 +137,7 @@ void rst_handler(CPUContext& ctx, memory::MMU& memory)
 }
 void reti_handler(CPUContext& ctx, memory::MMU& memory)
 {
-    ctx.interrupt_masked = true;
+    ctx.master_interrupt_enabled = true;
     ret_handler(ctx, memory);
 }
 void ret_handler(CPUContext& ctx, memory::MMU& memory)
@@ -225,7 +225,7 @@ void ldh_handler(CPUContext& ctx, memory::MMU& memory)
 }
 void di_handler(CPUContext& ctx, memory::MMU& memory)
 {
-    ctx.interrupt_masked = true;
+    ctx.master_interrupt_enabled = true;
 }
 void ld_handler(CPUContext& ctx, memory::MMU& memory)
 {

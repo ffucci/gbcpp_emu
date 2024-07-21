@@ -13,6 +13,7 @@ add_library(gbemu_lib
     src/cpu.cpp
     src/instruction_handlers.cpp
     src/instructions.cpp
+    src/interrupt.cpp
     src/mmu.cpp
     src/ram.cpp
 )

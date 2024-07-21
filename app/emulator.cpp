@@ -4,6 +4,7 @@
 #include <thread>
 
 #include "cartridge/cartridge.h"
+#include "gameboy_ui.h"
 #include "utils/logger.h"
 #include "utils/utils.h"
 
@@ -33,34 +34,28 @@ int main(int argc, char** argv)
     auto& logger = Logger::instance();
     logger.log("... Starting GB-EMU .... ");
     logger.log("< Written by Francesco Fucci >");
+
+    boost::asio::io_context ioc;
+
     gameboy::cartridge::Cartridge cartridge(filename);
     gameboy::cpu::CPU cpu(gameboy::cpu::get_initial_state(), cartridge);
 
-    SDL_Init(SDL_INIT_VIDEO);
+    gameboy::ui::Emulation emulation(cpu);
+    gameboy::ui::GameboyUI gameboy(emulation, ioc);
 
-    const auto width = 400;
-    const auto height = 400;
-    auto window = SDL_CreateWindow(
-        "gbemu_cpp", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_OPENGL);
+    // boost::asio::signal_set signals(ioc, SIGINT);
+    // signals.async_wait([&ioc](auto error, auto signal_nr) {
+    //     ioc.stop();
+    //     close_handler(error, signal_nr);
+    // });
 
-    auto renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    std::jthread cpu_thread([&cpu](std::stop_token token) { cpu.run(token); });
 
-    auto gb_screen_texture =
-        SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, width, height);
+    while (!emulation.stop) {
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+        gameboy.wait_for_events();
+    }
 
-    boost::asio::io_context ioc;
-    boost::asio::signal_set signals(ioc, SIGINT);
-    signals.async_wait([&ioc](auto error, auto signal_nr) {
-        ioc.stop();
-        close_handler(error, signal_nr);
-    });
-    boost::asio::post([&cpu]() { cpu.run(); });
-    ioc.run();
-
-    SDL_DestroyTexture(gb_screen_texture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-
+    cpu_thread.request_stop();
     return 0;
 }

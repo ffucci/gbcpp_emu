@@ -27,11 +27,12 @@ auto MMU::read(uint16_t address) const -> uint8_t
     if (address < 0xFE00) {
         // Reserved echo RAM
         return 0;
-    } else if (address < 0xFEA0) {
+    }
+
+    if (address < 0xFEA0) {
         auto& logger = logger::Logger::instance();
         logger.log("Unsupported BUS read @{:4X}", address);
-        std::this_thread::sleep_for(std::chrono::microseconds(1000));
-        exit(-7);
+        return 0;
     }
 
     if (address < 0xFF00) {
@@ -42,7 +43,7 @@ auto MMU::read(uint16_t address) const -> uint8_t
     if (address < 0xFF80) {
         auto& logger = logger::Logger::instance();
         logger.log("Unsupported BUS read @{:4X}", address);
-        exit(-7);
+        return 0;
     }
 
     if (address == 0xFFFF) {
@@ -66,7 +67,8 @@ auto MMU::write(uint16_t address, uint8_t value) -> void
     }
 
     if (address < CHR_RAM_LIMIT) {
-        throw std::runtime_error(std::format("NOT IMPL {:X}", address));
+        // throw std::runtime_error(std::format("NOT IMPL {:X}", address));
+        return;
     }
 
     if (address < 0xC000) {

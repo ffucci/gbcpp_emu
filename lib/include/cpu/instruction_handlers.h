@@ -10,14 +10,6 @@
 #include "cpu/instructions.h"
 #include "utils/logger.h"
 
-#define BIT_SET(a, n, on)   \
-    {                       \
-        if (on)             \
-            a |= (1 << n);  \
-        else                \
-            a &= ~(1 << n); \
-    }
-
 namespace gameboy::cpu {
 
 using Handler = void (*)(CPUContext& context, memory::MMU&);
@@ -52,73 +44,12 @@ inline void none_handler(CPUContext& ctx, memory::MMU& memory)
     throw std::runtime_error("CANNOT EXECUTE");
 }
 
-inline void cpu_set_flag_late(uint8_t& flags, uint8_t zero, uint8_t n, uint8_t half, uint8_t carry)
-{
-    const auto bz = (zero << 7);
-    const auto bn = (n << 6);
-    const auto bh = (half << 5);
-    const auto bc = (carry << 4);
-    auto& logger = logger::Logger::instance();
-    logger.log("z: {:08b}, n: {:08b}, h: {:08b}, c: {:08b}", zero, n, half, carry);
-    logger.log("bz: {:08b}, bn: {:08b}, bh: {:08b}, bc: {:08b}", bz, bn, bh, bc);
-    flags |= (flags & ~bz) | (-(zero != 0xFF) & bz);
-    logger.log("flags {:08b}", flags);
-
-    flags |= (flags & ~bn) | (-(n != 0xFF) & bn);
-    logger.log("flags {:08b}", flags);
-
-    flags |= (flags & ~bh) | (-(half != 0xFF) & bh);
-    logger.log("flags {:08b}", flags);
-
-    flags |= (flags & ~bc) | (-(carry != 0xFF) & bc);
-    logger.log("flags {:08b}", flags);
-}
-
-inline void cpu_set_flag(uint8_t& flags, char zero, char n, char half, char carry)
-{
-    const bool is_zero = (zero != 0);
-    const bool is_n = (n != 0);
-    const bool is_half = (half != 0);
-    const bool is_carry = (carry != 0);
-
-    const auto mbz = (1 << 7);
-    const auto mbn = (1 << 6);
-    const auto mbh = (1 << 5);
-    const auto mbc = (1 << 4);
-
-    flags ^= (zero != -1 ? -1 : 0) & ((-is_zero ^ flags) & mbz);
-    flags ^= (n != -1 ? -1 : 0) & ((-is_n ^ flags) & mbn);
-    flags ^= (half != -1 ? -1 : 0) & ((-is_half ^ flags) & mbh);
-    flags ^= (carry != -1 ? -1 : 0) & ((-is_carry ^ flags) & mbc);
-}
-
-inline void cpu_set_flag_macro(uint8_t& flags, char z, char n, char h, char c)
-{
-    if (z != -1) {
-        BIT_SET(flags, 7, z);
-    }
-
-    if (n != -1) {
-        BIT_SET(flags, 6, n);
-    }
-
-    if (h != -1) {
-        BIT_SET(flags, 5, h);
-    }
-
-    if (c != -1) {
-        BIT_SET(flags, 4, c);
-    }
-}
-
 inline void nop_handler(CPUContext& ctx, memory::MMU& memory)
 {
 }
 
 bool check_cond(CPUContext& context);
 void ld_handler(CPUContext& ctx, memory::MMU& memory);
-
-void di_handler(CPUContext& ctx, memory::MMU& memory);
 void ldh_handler(CPUContext& ctx, memory::MMU& memory);
 
 // ************************* STACK INSTRUCTIONS *************************** //
@@ -156,6 +87,95 @@ void cp_handler(CPUContext& ctx, memory::MMU& memory);
 // ************************* PREFIX CB ******************************** //
 void cb_handler(CPUContext& ctx, memory::MMU& memory);
 
+// ************************* SPECIAL INSTRUCTIONS ******************************** //
+inline void rlca_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    uint8_t u = ctx.registers.a;
+    bool c = (u >> 7) & 1;
+    u = (u << 1) | c;  // 00000111 -> (00001110) | 0;
+    ctx.registers.a = u;
+    cpu_set_flag(ctx.registers.f, u == 0, 0, 0, c);
+}
+
+inline void rrca_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    uint8_t bit = ctx.registers.a & 1;
+    ctx.registers.a >>= 1;
+    ctx.registers.a |= (bit << 7);  // to wrap around
+
+    cpu_set_flag(ctx.registers.f, 0, 0, 0, bit);
+}
+
+inline void rla_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    uint8_t u = ctx.registers.a;
+    uint8_t cf = ctx.registers.c_flag();
+    uint8_t c = (u >> 7) & 1;
+    ctx.registers.a = (u << 1) | cf;
+    cpu_set_flag(ctx.registers.f, 0, 0, 0, c);
+}
+
+inline void rra_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    uint8_t cf = ctx.registers.c_flag();
+    uint8_t new_carry = ctx.registers.a & 0x1;
+    ctx.registers.a >>= 1;
+    ctx.registers.a |= (cf << 7);
+
+    cpu_set_flag(ctx.registers.f, 0, 0, 0, new_carry);
+}
+
+inline void stop_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    throw std::runtime_error("STOPPING....");
+}
+
+inline void daa_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    uint8_t u = 0;
+    int fc = 0;
+
+    auto& regs = ctx.registers;
+    if (regs.h_flag() || (!regs.n_flag() && (regs.a & 0xF) > 9)) {
+        u = 6;
+    }
+
+    if (regs.c_flag() || (!regs.n_flag() && regs.a > 0x99)) {
+        u |= 0x60;
+        fc = 1;
+    }
+
+    regs.a += regs.n_flag() ? -u : u;
+
+    cpu_set_flag(ctx.registers.f, regs.a == 0, -1, 0, fc);
+}
+
+inline void cpl_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    ctx.registers.a = ~ctx.registers.a;
+    cpu_set_flag(ctx.registers.f, -1, 1, 1, -1);
+}
+
+inline void scf_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    cpu_set_flag(ctx.registers.f, -1, 0, 0, 1);
+}
+
+inline void ccf_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    cpu_set_flag(ctx.registers.f, -1, 0, 0, ctx.registers.c_flag() ^ 1);
+}
+
+inline void halt_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    ctx.state = CPUState::HALT;
+}
+
+void di_handler(CPUContext& ctx, memory::MMU& memory);
+inline void ei_handler(CPUContext& ctx, memory::MMU& memory)
+{
+}
+
 constexpr auto make_executors_table() -> const ExecutorsTable
 {
     ExecutorsTable table_{};
@@ -188,7 +208,22 @@ constexpr auto make_executors_table() -> const ExecutorsTable
     table_[std::to_underlying(InstructionType::LDH)] = ldh_handler;
     table_[std::to_underlying(InstructionType::PUSH)] = push_handler;
     table_[std::to_underlying(InstructionType::POP)] = pop_handler;
+
+    // **** SPECIAL ****
+    table_[std::to_underlying(InstructionType::RLCA)] = rlca_handler;
+    table_[std::to_underlying(InstructionType::RRCA)] = rrca_handler;
+    table_[std::to_underlying(InstructionType::RLA)] = rla_handler;
+    table_[std::to_underlying(InstructionType::RRA)] = rra_handler;
+
+    table_[std::to_underlying(InstructionType::DAA)] = daa_handler;
+    table_[std::to_underlying(InstructionType::CPL)] = cpl_handler;
+    table_[std::to_underlying(InstructionType::SCF)] = scf_handler;
+    table_[std::to_underlying(InstructionType::CCF)] = ccf_handler;
+    table_[std::to_underlying(InstructionType::HALT)] = halt_handler;
+
     table_[std::to_underlying(InstructionType::DI)] = di_handler;
+    table_[std::to_underlying(InstructionType::EI)] = ei_handler;
+
     return table_;
 }
 

@@ -39,6 +39,11 @@ class MMU
 
     auto write16(uint16_t address, uint8_t value) -> void;
 
+    auto ie_register() -> uint8_t
+    {
+        return int_enable_register_;
+    }
+
    private:
     cartridge::Cartridge& cartridge_;
     RAM ram_{};
