@@ -1,7 +1,9 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <stdexcept>
+#include <thread>
 #include "cartridge/cartridge.h"
 #include "mmu/ram.h"
 #include "utils/logger.h"
@@ -33,18 +35,32 @@ class MMU
     {
         if (address < HRAM_LIMIT) {
             return cartridge_.read(address);
-        } else if (address < CHR_RAM_LIMIT) {
-            throw std::runtime_error("NOT IMPL");
-        } else if (address < 0xC000) {
+        }
+
+        if (address < CHR_RAM_LIMIT) {
+            auto& logger = logger::Logger::instance();
+            logger.log("Unsupported BUS read @{:4X}", address);
+            std::this_thread::sleep_for(std::chrono::microseconds(100));
+            exit(-7);
+        }
+
+        if (address < 0xC000) {
             return cartridge_.read(address);
-        } else if (address < 0xE000) {
+        }
+
+        if (address < 0xE000) {
             // We go into the WRAM
             return ram_.wram_read(address);
-        } else if (address < 0xFE00) {
+        }
+
+        if (address < 0xFE00) {
             // Reserved echo RAM
             return 0;
         } else if (address < 0xFEA0) {
-            throw std::runtime_error("NOT IMPL");
+            auto& logger = logger::Logger::instance();
+            logger.log("Unsupported BUS read @{:4X}", address);
+            std::this_thread::sleep_for(std::chrono::microseconds(1000));
+            exit(-7);
         }
 
         if (address < 0xFF00) {
@@ -53,7 +69,9 @@ class MMU
         }
 
         if (address < 0xFF80) {
-            return 0;
+            auto& logger = logger::Logger::instance();
+            logger.log("Unsupported BUS read @{:4X}", address);
+            exit(-7);
         }
 
         if (address == 0xFFFF) {

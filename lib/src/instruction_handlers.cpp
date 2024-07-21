@@ -1,5 +1,6 @@
 #include "cpu/instruction_handlers.h"
 #include <cstdint>
+#include "utils/logger.h"
 
 namespace gameboy::cpu {
 
@@ -119,13 +120,15 @@ void inc_handler(CPUContext& ctx, memory::MMU& memory)
         memory.write(address, val);
     } else {
         ctx.set_reg(ctx.instruction.r1, val);
+        val = ctx.read_reg(ctx.instruction.r1);
     }
 
     if ((ctx.current_opcode & 0x03) == 0x03) {
         return;
     }
 
-    cpu_set_flag(ctx.registers.f, val == 0, 0, (val & 0xF) == 0, 0xFF);
+    const bool has_half = ((val & 0x0F) == 0);
+    cpu_set_flag(ctx.registers.f, val == 0, 0, has_half, 0xFF);
     return;
 }
 void rst_handler(CPUContext& ctx, memory::MMU& memory)

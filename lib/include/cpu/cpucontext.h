@@ -44,7 +44,7 @@ struct CPURegisters
         }
 
         if (f & ZERO) {
-            ret[0] = 'S';
+            ret[0] = 'Z';
         }
 
         return ret;

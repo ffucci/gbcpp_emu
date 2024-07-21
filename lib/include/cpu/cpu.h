@@ -20,9 +20,9 @@ namespace gameboy::cpu {
 class CPU
 {
    public:
-    CPU(CPURegisters initial_state, cartridge::Cartridge& cartridge)
-        : context_{.registers = std::move(initial_state)}, memory_(cartridge)
+    CPU(CPURegisters initial_state, cartridge::Cartridge& cartridge) : memory_(cartridge)
     {
+        context_.registers = std::move(initial_state);
     }
 
     void run();
@@ -33,7 +33,7 @@ class CPU
     auto fetch_data(const Instruction& instruction) -> void;
     void execute(const Instruction& instruction);
 
-    CPUContext context_;
+    CPUContext context_{};
     memory::MMU memory_;
 
     size_t ticks_{0};

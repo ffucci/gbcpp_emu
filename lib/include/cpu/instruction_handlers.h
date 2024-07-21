@@ -8,6 +8,15 @@
 #include "mmu/mmu.h"
 #include "cpu/cpucontext.h"
 #include "cpu/instructions.h"
+#include "utils/logger.h"
+
+#define BIT_SET(a, n, on)   \
+    {                       \
+        if (on)             \
+            a |= (1 << n);  \
+        else                \
+            a &= ~(1 << n); \
+    }
 
 namespace gameboy::cpu {
 
@@ -43,17 +52,63 @@ inline void none_handler(CPUContext& ctx, memory::MMU& memory)
     throw std::runtime_error("CANNOT EXECUTE");
 }
 
-inline void cpu_set_flag(uint8_t& flags, uint8_t zero, uint8_t n, uint8_t half, uint8_t carry)
+inline void cpu_set_flag_late(uint8_t& flags, uint8_t zero, uint8_t n, uint8_t half, uint8_t carry)
 {
     const auto bz = (zero << 7);
     const auto bn = (n << 6);
     const auto bh = (half << 5);
     const auto bc = (carry << 4);
+    auto& logger = logger::Logger::instance();
+    logger.log("z: {:08b}, n: {:08b}, h: {:08b}, c: {:08b}", zero, n, half, carry);
+    logger.log("bz: {:08b}, bn: {:08b}, bh: {:08b}, bc: {:08b}", bz, bn, bh, bc);
+    flags |= (flags & ~bz) | (-(zero != 0xFF) & bz);
+    logger.log("flags {:08b}", flags);
 
-    flags = (flags & ~bz) | (-(zero != 0xFF) & bz);
-    flags = (flags & ~bn) | (-(n != 0xFF) & bn);
-    flags = (flags & ~bh) | (-(half != 0xFF) & bh);
-    flags = (flags & ~bc) | (-(carry != 0xFF) & bc);
+    flags |= (flags & ~bn) | (-(n != 0xFF) & bn);
+    logger.log("flags {:08b}", flags);
+
+    flags |= (flags & ~bh) | (-(half != 0xFF) & bh);
+    logger.log("flags {:08b}", flags);
+
+    flags |= (flags & ~bc) | (-(carry != 0xFF) & bc);
+    logger.log("flags {:08b}", flags);
+}
+
+inline void cpu_set_flag(uint8_t& flags, char zero, char n, char half, char carry)
+{
+    const bool is_zero = (zero != 0);
+    const bool is_n = (n != 0);
+    const bool is_half = (half != 0);
+    const bool is_carry = (carry != 0);
+
+    const auto mbz = (1 << 7);
+    const auto mbn = (1 << 6);
+    const auto mbh = (1 << 5);
+    const auto mbc = (1 << 4);
+
+    flags ^= (zero != -1 ? -1 : 0) & ((-is_zero ^ flags) & mbz);
+    flags ^= (n != -1 ? -1 : 0) & ((-is_n ^ flags) & mbn);
+    flags ^= (half != -1 ? -1 : 0) & ((-is_half ^ flags) & mbh);
+    flags ^= (carry != -1 ? -1 : 0) & ((-is_carry ^ flags) & mbc);
+}
+
+inline void cpu_set_flag_macro(uint8_t& flags, char z, char n, char h, char c)
+{
+    if (z != -1) {
+        BIT_SET(flags, 7, z);
+    }
+
+    if (n != -1) {
+        BIT_SET(flags, 6, n);
+    }
+
+    if (h != -1) {
+        BIT_SET(flags, 5, h);
+    }
+
+    if (c != -1) {
+        BIT_SET(flags, 4, c);
+    }
 }
 
 inline void nop_handler(CPUContext& ctx, memory::MMU& memory)

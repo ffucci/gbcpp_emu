@@ -19,3 +19,5 @@ add_library(gbemu_lib
 
 target_include_directories(gbemu_lib PUBLIC include)
 target_link_libraries(gbemu_lib PUBLIC nlohmann_json::nlohmann_json)
+
+add_subdirectory(tests)
