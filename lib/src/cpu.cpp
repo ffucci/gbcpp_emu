@@ -2,6 +2,8 @@
 #include <cstdint>
 #include <stop_token>
 #include "cpu/cpucontext.h"
+#include "cpu/instructions.h"
+#include "utils/logger.h"
 
 namespace gameboy::cpu {
 
@@ -139,15 +141,15 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
         case AddressingMode::D16_R: {
             auto& regs = context_.registers;
 
-            auto lo = memory_.read(regs.pc);
+            uint16_t lo = memory_.read(regs.pc);
             // emu_cycles(1)
-            auto hi = memory_.read(regs.pc + 1);
+            uint16_t hi = memory_.read(regs.pc + 1);
             // emu_cycles(1)
 
             context_.memory_destination = (lo | (hi << 8));
             context_.destination_is_mem = true;
             regs.pc += 2;
-            context_.fetched_data = memory_.read(context_.read_reg(instruction.r2));
+            context_.fetched_data = context_.read_reg(instruction.r2);
             return;
         }
         case AddressingMode::MR_D8: {
@@ -172,13 +174,14 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
         case AddressingMode::R_A16: {
             auto& regs = context_.registers;
 
-            auto lo = memory_.read(regs.pc);
+            uint16_t lo = memory_.read(regs.pc);
             // emu_cycles(1)
-            auto hi = memory_.read(regs.pc + 1);
+            uint16_t hi = memory_.read(regs.pc + 1);
             // emu_cycles(1)
 
-            auto address = (lo | (hi << 8));
+            uint16_t address = (lo | (hi << 8));
             regs.pc += 2;
+
             context_.fetched_data = memory_.read(address);
             // emu_cycles(1)
             return;
@@ -189,10 +192,6 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
 }
 void CPU::execute(const Instruction& instruction)
 {
-    if constexpr (DEBUG) {
-        auto& logger = logger::Logger::instance();
-        logger.log("OPC: {:#x} , PC: {:#x} ", context_.current_opcode, context_.registers.pc);
-    }
     executors_[std::to_underlying(instruction.type)](context_, memory_);
 }
 auto CPU::fetch_instruction() noexcept -> const Instruction&
