@@ -38,7 +38,7 @@ inline void cpu_set_flag_late(uint8_t& flags, uint8_t zero, uint8_t n, uint8_t h
     flags |= (flags & ~bc) | (-(carry != 0xFF) & bc);
 }
 
-inline void cpu_set_flag(uint8_t& flags, char zero, char n, char half, char carry)
+inline void cpu_set_flag_old(uint8_t& flags, char zero, char n, char half, char carry)
 {
     const bool is_zero = (zero != 0);
     const bool is_n = (n != 0);
@@ -56,7 +56,7 @@ inline void cpu_set_flag(uint8_t& flags, char zero, char n, char half, char carr
     flags ^= (carry != -1 ? -1 : 0) & ((-is_carry ^ flags) & mbc);
 }
 
-inline void cpu_set_flag_branch(uint8_t& flags, char z, char n, char h, char c)
+inline void cpu_set_flag(uint8_t& flags, char z, char n, char h, char c)
 {
     if (z != -1) {
         BIT_SET(flags, 7, z);
@@ -113,24 +113,24 @@ struct CPURegisters
         return ret;
     }
 
-    [[nodiscard]] auto z_flag() const noexcept
+    [[nodiscard]] auto z_flag() const noexcept -> uint8_t
     {
-        return (f & ZERO) != 0;
+        return (f & ZERO) ? 1 : 0;
     }
 
-    [[nodiscard]] auto n_flag() const noexcept
+    [[nodiscard]] auto n_flag() const noexcept -> uint8_t
     {
-        return (f & N_SUB) != 0;
+        return (f & N_SUB) ? 1 : 0;
     }
 
-    [[nodiscard]] auto h_flag() const noexcept
+    [[nodiscard]] auto h_flag() const noexcept -> uint8_t
     {
-        return (f & HALF) != 0;
+        return (f & HALF) ? 1 : 0;
     }
 
-    [[nodiscard]] auto c_flag() const noexcept
+    [[nodiscard]] auto c_flag() const noexcept -> uint8_t
     {
-        return (f & CARRY) != 0;
+        return (f & CARRY) ? 1 : 0;
     }
 };
 

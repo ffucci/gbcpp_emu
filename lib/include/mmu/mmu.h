@@ -7,6 +7,9 @@
 #include "cartridge/cartridge.h"
 #include "mmu/ram.h"
 #include "utils/logger.h"
+
+#include "io/device.h"
+
 namespace gameboy::memory {
 
 // 0x0000 - 0x3FFF : ROM Bank 0
@@ -44,7 +47,7 @@ class MMU
    private:
     cartridge::Cartridge& cartridge_;
     RAM ram_{};
-
+    io::Device device_{};
     uint8_t int_enable_register_{0};
 
     static constexpr uint16_t HRAM_LIMIT{0x8000};

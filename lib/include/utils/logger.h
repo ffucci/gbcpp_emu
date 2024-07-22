@@ -39,7 +39,8 @@ class Logger
 
     void log(std::string_view fmt_in, auto... vars)
     {
-        buffer_.push(std::vformat(fmt_in, std::make_format_args(vars...)));
+        // buffer_.push(std::vformat(fmt_in, std::make_format_args(vars...)));
+        std::cout << std::vformat(fmt_in, std::make_format_args(vars...)) << std::endl;
     }
 
    private:

@@ -1,4 +1,3 @@
-include(CTest)
 include(GoogleTest)
 
 enable_testing()

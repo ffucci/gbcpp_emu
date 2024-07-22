@@ -132,7 +132,7 @@ inline void stop_handler(CPUContext& ctx, memory::MMU& memory)
 
 inline void daa_handler(CPUContext& ctx, memory::MMU& memory)
 {
-    uint8_t u = 0;
+    int8_t u = 0;
     int fc = 0;
 
     auto& regs = ctx.registers;

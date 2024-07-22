@@ -239,7 +239,7 @@ void CPU::step()
         "{:08X} - {:04X}: {} ({:02X}, {:02X}, {:02X}) \tA: {:02X}, BC:{:02X}{:02X}, DE:{:02X}{:02X}, "
         "HL:{:02X}{:02X}, "
         "F:{}",
-        ticks_, pc, get_instruction_name(context_.instruction.type), context_.current_opcode, memory_.read(pc + 1),
+        ticks_, pc, decode_instruction(context_, memory_), context_.current_opcode, memory_.read(pc + 1),
         memory_.read(pc + 2), regs.a, regs.b, regs.c, regs.d, regs.e, regs.h, regs.l, regs.get_flags_string());
 
     if (context_.instruction.type == InstructionType::NONE) {
@@ -247,6 +247,7 @@ void CPU::step()
         throw std::runtime_error("Instruction is not valid or not yet added.");
     }
 
+    debug_.update(memory_);
     execute(context_.instruction);
 }
 

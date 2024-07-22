@@ -41,9 +41,7 @@ auto MMU::read(uint16_t address) const -> uint8_t
     }
 
     if (address < 0xFF80) {
-        auto& logger = logger::Logger::instance();
-        logger.log("Unsupported BUS read @{:4X}", address);
-        return 0;
+        return device_.read(address);
     }
 
     if (address == 0xFFFF) {
@@ -106,8 +104,7 @@ auto MMU::write(uint16_t address, uint8_t value) -> void
     }
 
     if (address < 0xFF80) {
-        auto& logger = logger::Logger::instance();
-        logger.log("IO on address {:04X}", address);
+        device_.write(address, value);
         return;
     }
 
