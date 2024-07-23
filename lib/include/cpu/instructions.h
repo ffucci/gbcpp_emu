@@ -167,7 +167,7 @@ constexpr std::array<Instruction, NUM_OPCODES> initialize_instruction_set()
     all_instructions[0x13] = {InstructionType::INC, AddressingMode::R, RegisterType::DE};
     all_instructions[0x14] = {InstructionType::INC, AddressingMode::R, RegisterType::D};
     all_instructions[0x15] = {InstructionType::DEC, AddressingMode::R, RegisterType::D};
-    all_instructions[0x16] = {InstructionType::LD, AddressingMode::R_D8, RegisterType::B};
+    all_instructions[0x16] = {InstructionType::LD, AddressingMode::R_D8, RegisterType::D};
     all_instructions[0x17] = {InstructionType::RLA};
 
     all_instructions[0x18] = {InstructionType::JR, AddressingMode::D8};
@@ -451,6 +451,7 @@ constexpr std::array<Instruction, NUM_OPCODES> initialize_instruction_set()
 
     all_instructions[0xE7] = {InstructionType::RST, AddressingMode::IMP, RegisterType::None,
                               RegisterType::None,   ConditionType::None, 0x20};
+    all_instructions[0xE8] = {InstructionType::ADD, AddressingMode::R_D8, RegisterType::SP};
 
     all_instructions[0xE9] = {InstructionType::JP, AddressingMode::R, RegisterType::HL};
     all_instructions[0xEA] = {InstructionType::LD, AddressingMode::A16_R, RegisterType::None, RegisterType::A};

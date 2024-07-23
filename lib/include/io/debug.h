@@ -8,7 +8,7 @@ namespace gameboy::io {
 class Debug
 {
    public:
-    Debug() : debug_ring_(1024, '\0')
+    Debug() : debug_ring_(1024, 0)
     {
     }
 

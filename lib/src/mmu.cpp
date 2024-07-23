@@ -31,7 +31,7 @@ auto MMU::read(uint16_t address) const -> uint8_t
 
     if (address < 0xFEA0) {
         auto& logger = logger::Logger::instance();
-        logger.log("Unsupported BUS read @{:4X}", address);
+        logger.log("UNSUPPORTED bus_read(@{:4X})", address);
         return 0;
     }
 

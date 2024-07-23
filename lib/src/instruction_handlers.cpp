@@ -10,12 +10,18 @@ void sbc_handler(CPUContext& ctx, memory::MMU& memory)
     auto cpu_flag_c = ctx.registers.c_flag();
     uint16_t val = ctx.fetched_data + cpu_flag_c;
 
+    // int z = cpu_read_reg(ctx->cur_inst->reg_1) - val == 0;
+
+    // int h = ((int)cpu_read_reg(ctx->cur_inst->reg_1) & 0xF)
+    //     - ((int)ctx->fetched_data & 0xF) - ((int)CPU_FLAG_C) < 0;
+    // int c = ((int)cpu_read_reg(ctx->cur_inst->reg_1))
+    //     - ((int)ctx->fetched_data) - ((int)CPU_FLAG_C) < 0;
+
     const uint16_t r1_val = ctx.read_reg(ctx.instruction.r1);
     int z = (r1_val - val == 0);
-    int h =
-        (static_cast<int>(r1_val) & 0xF) - (static_cast<int>(ctx.fetched_data) & 0xF) - (static_cast<int>(cpu_flag_c)) <
-        0;
-    int c = static_cast<int>(r1_val) - static_cast<int>(ctx.fetched_data) - (static_cast<int>(cpu_flag_c)) < 0;
+    int h = ((static_cast<int>(r1_val) & 0xF) - (static_cast<int>(ctx.fetched_data) & 0xF) -
+             (static_cast<int>(cpu_flag_c))) < 0;
+    int c = (static_cast<int>(r1_val) - static_cast<int>(ctx.fetched_data) - (static_cast<int>(cpu_flag_c))) < 0;
 
     ctx.set_reg(ctx.instruction.r1, r1_val - val);
     cpu_set_flag(ctx.registers.f, z, 1, h, c);
@@ -59,12 +65,12 @@ void add_handler(CPUContext& ctx, memory::MMU& mmu)
         val = ctx.read_reg(ctx.instruction.r1) + static_cast<char>(ctx.fetched_data);
     }
 
-    int z = (val & 0xFF) == 0;
+    int z = ((val & 0xFF) == 0);
     int h = (ctx.read_reg(ctx.instruction.r1) & 0xF) + (ctx.fetched_data & 0xF) >= 0x10;
     int c = (ctx.read_reg(ctx.instruction.r1) & 0xFF) + (ctx.fetched_data & 0xFF) >= 0x100;
 
     if (is_16_bit) {
-        z = 0xFF;
+        z = -1;
         h = (ctx.read_reg(ctx.instruction.r1) & 0xFFF) + (ctx.fetched_data & 0xFFF) >= 0x1000;
         uint32_t n = static_cast<uint32_t>(ctx.read_reg(ctx.instruction.r1)) + static_cast<uint32_t>(ctx.fetched_data);
         c = n >= 0x10000;
@@ -73,7 +79,9 @@ void add_handler(CPUContext& ctx, memory::MMU& mmu)
     if (ctx.instruction.r1 == RegisterType::SP) {
         z = 0;
         h = (ctx.read_reg(ctx.instruction.r1) & 0xF) + (ctx.fetched_data & 0xF) >= 0x10;
-        c = (ctx.read_reg(ctx.instruction.r1) & 0xFF) + (ctx.fetched_data & 0xFF) >= 0x100;
+        c =
+            (static_cast<int>(ctx.read_reg(ctx.instruction.r1) & 0xFF) + static_cast<int>(ctx.fetched_data & 0xFF) >=
+             0x100);
     }
 
     ctx.set_reg(ctx.instruction.r1, val & 0xFFFF);
@@ -81,7 +89,7 @@ void add_handler(CPUContext& ctx, memory::MMU& mmu)
 }
 void dec_handler(CPUContext& ctx, memory::MMU& memory)
 {
-    auto val = ctx.read_reg(ctx.instruction.r1) - 1;
+    uint16_t val = ctx.read_reg(ctx.instruction.r1) - 1;
 
     if (CPUContext::is_16_bit(ctx.instruction.r2)) {
         // emu_cycles(1); add one cycle
@@ -94,7 +102,8 @@ void dec_handler(CPUContext& ctx, memory::MMU& memory)
         val &= 0xFF;
         memory.write(address, val);
     } else {
-        ctx.set_reg(ctx.instruction.r1, val);
+        ctx.set_reg(instruction.r1, val);
+        val = ctx.read_reg(instruction.r1);
     }
 
     if ((ctx.current_opcode & 0x0B) == 0x0B) {
@@ -102,7 +111,7 @@ void dec_handler(CPUContext& ctx, memory::MMU& memory)
     }
 
     // TODO: Correct CPU Set flags (which is not totally correct)
-    cpu_set_flag(ctx.registers.f, val == 0, 1, (val & 0x0F) == 0x0F, 0xFF);
+    cpu_set_flag(ctx.registers.f, val == 0, 1, (val & 0x0F) == 0x0F, -1);
     return;
 }
 void inc_handler(CPUContext& ctx, memory::MMU& memory)
@@ -164,8 +173,8 @@ void call_handler(CPUContext& ctx, memory::MMU& memory)
 }
 void jr_handler(CPUContext& ctx, memory::MMU& memory)
 {
-    auto offset = static_cast<char>(ctx.fetched_data & 0xFF);
-    const auto address = ctx.registers.pc + offset;
+    int8_t offset = static_cast<int8_t>(ctx.fetched_data & 0xFF);
+    const uint16_t address = ctx.registers.pc + offset;
     jump_to_addr(ctx, memory, address, false);
 }
 void jp_handler(CPUContext& ctx, memory::MMU& memory)
@@ -226,7 +235,7 @@ void ldh_handler(CPUContext& ctx, memory::MMU& memory)
 }
 void di_handler(CPUContext& ctx, memory::MMU& memory)
 {
-    ctx.master_interrupt_enabled = true;
+    ctx.master_interrupt_enabled = false;
 }
 void ld_handler(CPUContext& ctx, memory::MMU& memory)
 {
@@ -243,13 +252,15 @@ void ld_handler(CPUContext& ctx, memory::MMU& memory)
     }
 
     if (ctx.instruction.mode == AddressingMode::HL_SPR) {
-        const auto reg2_val = ctx.read_reg(ctx.instruction.r2);
+        // const auto reg2_val = ctx.read_reg(ctx.instruction.r2);
 
-        auto hflag = (reg2_val & 0xF) + (ctx.fetched_data & 0xF) >= 0x10;
-        auto cflag = (reg2_val & 0xFF) + (ctx.fetched_data & 0xFF) >= 0x100;
+        uint8_t hflag = (ctx.read_reg(ctx.instruction.r2) & 0xF) + (ctx.fetched_data & 0xF) >= 0x10;
+        uint8_t cflag = (ctx.read_reg(ctx.instruction.r2) & 0xFF) + (ctx.fetched_data & 0xFF) >= 0x100;
 
         cpu_set_flag(ctx.registers.f, 0, 0, hflag, cflag);
-        ctx.set_reg(ctx.instruction.r1, reg2_val + (char)(ctx.fetched_data));  // TODO: understand better.
+        ctx.set_reg(
+            ctx.instruction.r1,
+            ctx.read_reg(ctx.instruction.r2) + (char)(ctx.fetched_data));  // TODO: understand better.
         return;
     }
 
@@ -264,8 +275,8 @@ void ld_handler(CPUContext& ctx, memory::MMU& memory)
 }
 bool check_cond(CPUContext& context)
 {
-    bool z = (context.registers.f & ZERO) != 0;
-    bool c = (context.registers.f & CARRY) != 0;
+    bool z = context.registers.z_flag();
+    bool c = context.registers.c_flag();
     switch (context.instruction.condition) {
         case ConditionType::None:
             return true;
@@ -291,7 +302,7 @@ void and_handler(CPUContext& ctx, memory::MMU& memory)
 {
     auto& regs = ctx.registers;
     regs.a &= ctx.fetched_data;
-    cpu_set_flag(regs.f, regs.a == 0, 0, 0, 0);
+    cpu_set_flag(regs.f, regs.a == 0, 0, 1, 0);
 }
 void or_handler(CPUContext& ctx, memory::MMU& memory)
 {
@@ -309,7 +320,7 @@ void cp_handler(CPUContext& ctx, memory::MMU& memory)
 }
 void cb_handler(CPUContext& ctx, memory::MMU& memory)
 {
-    auto set_reg_internal = [ctx, memory](RegisterType reg, uint8_t value) mutable {
+    auto set_reg_internal = [&ctx, &memory](RegisterType reg, uint8_t value) mutable {
         if (reg == RegisterType::HL) {
             memory.write(ctx.read_reg(RegisterType::HL), value);
             return;

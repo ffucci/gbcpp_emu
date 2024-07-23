@@ -174,6 +174,7 @@ inline void halt_handler(CPUContext& ctx, memory::MMU& memory)
 void di_handler(CPUContext& ctx, memory::MMU& memory);
 inline void ei_handler(CPUContext& ctx, memory::MMU& memory)
 {
+    ctx.enabling_ime = true;
 }
 
 constexpr auto make_executors_table() -> const ExecutorsTable

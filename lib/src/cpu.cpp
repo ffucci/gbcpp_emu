@@ -15,6 +15,8 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
     const auto rd8_handler = [this]() {
         auto& regs = context_.registers;
         context_.fetched_data = memory_.read(regs.pc);
+        // emu_cycles(1);
+
         // auto& logger = logger::Logger::instance();
         // logger.log("Fetched data... {:02X}", context_.fetched_data);
         regs.pc++;
@@ -46,7 +48,10 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
             context_.fetched_data = context_.read_reg(instruction.r2);
             return;
         }
-
+        case AddressingMode::R_D8: {
+            rd8_handler();
+            return;
+        }
         case AddressingMode::R_MR: {
             auto addr = context_.read_reg(instruction.r2);
             if (instruction.r1 == RegisterType::C) {
@@ -71,10 +76,6 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
 
             return;
         }
-        case AddressingMode::R_D8: {
-            rd8_handler();
-            return;
-        }
         case AddressingMode::R_HLI: {
             context_.fetched_data = memory_.read(context_.read_reg(instruction.r2));
             // emu_cycles(1)
@@ -89,7 +90,6 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
             context_.set_reg(RegisterType::HL, new_val);
             return;
         }
-
         case AddressingMode::HLI_R: {
             context_.fetched_data = context_.read_reg(instruction.r2);  // What to increment read from registry
             context_.memory_destination = context_.read_reg(instruction.r1);
@@ -222,7 +222,7 @@ void CPU::run(std::stop_token token)
         if (context_.enabling_ime) {
             context_.master_interrupt_enabled = true;
         }
-        ticks_++;
+        // ticks_++;
     }
 }
 
@@ -236,11 +236,10 @@ void CPU::step()
     auto& logger = logger::Logger::instance();
 
     logger.log(
-        "{:08X} - {:04X}: {} ({:02X}, {:02X}, {:02X}) \tA: {:02X}, BC:{:02X}{:02X}, DE:{:02X}{:02X}, "
-        "HL:{:02X}{:02X}, "
-        "F:{}",
+        "{:08X} - {:04X}: {:12} ({:02X} {:02X} {:02X}) A: {:02X} F: {} BC: {:02X}{:02X} DE: {:02X}{:02X} "
+        "HL: {:02X}{:02X}",
         ticks_, pc, decode_instruction(context_, memory_), context_.current_opcode, memory_.read(pc + 1),
-        memory_.read(pc + 2), regs.a, regs.b, regs.c, regs.d, regs.e, regs.h, regs.l, regs.get_flags_string());
+        memory_.read(pc + 2), regs.a, regs.get_flags_string(), regs.b, regs.c, regs.d, regs.e, regs.h, regs.l);
 
     if (context_.instruction.type == InstructionType::NONE) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));

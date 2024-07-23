@@ -19,8 +19,12 @@ class Device
             return serial_data_[1];
         }
 
+        if ((address >= 0xFF04) && (address <= 0xFF07)) {
+            return 0;
+        }
+
         auto& logger = logger::Logger::instance();
-        logger.log("Unsupported read access to {:04X}", address);
+        logger.log("Unsupported bus_read access({:04X})", address);
         return 0;
     }
 
@@ -33,6 +37,10 @@ class Device
 
         if (address == 0xFF02) {
             serial_data_[1] = value;
+            return;
+        }
+
+        if ((address >= 0xFF04) && (address <= 0xFF07)) {
             return;
         }
 
