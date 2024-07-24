@@ -59,8 +59,9 @@ auto MMU::read16(uint16_t address) const -> uint16_t
 }
 auto MMU::write(uint16_t address, uint8_t value) -> void
 {
+    auto& logger = logger::Logger::instance();
+
     if constexpr (DEBUG) {
-        auto& logger = logger::Logger::instance();
         logger.log("WRITE> address {:04X} , value {:04X}", address, value);
     }
 
@@ -71,6 +72,7 @@ auto MMU::write(uint16_t address, uint8_t value) -> void
 
     if (address < CHR_RAM_LIMIT) {
         // throw std::runtime_error(std::format("NOT IMPL {:X}", address));
+        logger.log("UNSUPPORTED bus_write({:04X})", address);
         return;
     }
 
@@ -109,6 +111,7 @@ auto MMU::write(uint16_t address, uint8_t value) -> void
     }
 
     if (address == 0xFFFF) {
+        logger.log("SET ENABLE {:04X} - {:04X}", address, value);
         int_enable_register_ = value;
         return;
     }

@@ -15,7 +15,7 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
     const auto rd8_handler = [this]() {
         auto& regs = context_.registers;
         context_.fetched_data = memory_.read(regs.pc);
-        // emu_cycles(1);
+        context_.update_cycles(1);
 
         // auto& logger = logger::Logger::instance();
         // logger.log("Fetched data... {:02X}", context_.fetched_data);
@@ -27,9 +27,9 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
         auto& regs = context_.registers;
 
         auto lo = memory_.read(regs.pc);
-        // emu_cycles(1)
+        context_.update_cycles(1);
         auto hi = memory_.read(regs.pc + 1);
-        // emu_cycles(1)
+        context_.update_cycles(1);
 
         context_.fetched_data = (lo | (hi << 8));
         regs.pc += 2;
@@ -54,12 +54,12 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
         }
         case AddressingMode::R_MR: {
             auto addr = context_.read_reg(instruction.r2);
-            if (instruction.r1 == RegisterType::C) {
+            if (instruction.r2 == RegisterType::C) {
                 addr |= 0xFF00;
             }
 
             context_.fetched_data = memory_.read(addr);
-            // emu_cycles(1);
+            context_.update_cycles(1);
             return;
         }
         // memory register to registers
@@ -78,14 +78,14 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
         }
         case AddressingMode::R_HLI: {
             context_.fetched_data = memory_.read(context_.read_reg(instruction.r2));
-            // emu_cycles(1)
+            context_.update_cycles(1);
             const uint16_t new_val = context_.read_reg(RegisterType::HL) + 1;
             context_.set_reg(RegisterType::HL, new_val);
             return;
         }
         case AddressingMode::R_HLD: {
             context_.fetched_data = memory_.read(context_.read_reg(instruction.r2));
-            // emu_cycles(1)
+            context_.update_cycles(1);
             const uint16_t new_val = context_.read_reg(RegisterType::HL) - 1;
             context_.set_reg(RegisterType::HL, new_val);
             return;
@@ -110,22 +110,21 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
         case AddressingMode::D8:
         case AddressingMode::R_A8: {
             context_.fetched_data = memory_.read(context_.registers.pc);
-            // emu_cycles(1)
+            context_.update_cycles(1);
             context_.registers.pc++;
             return;
         }
         case AddressingMode::A8_R: {
             context_.memory_destination = memory_.read(context_.registers.pc) | 0xFF00;
             context_.destination_is_mem = true;
-            // emu_cycles(1)
-
+            context_.update_cycles(1);
             context_.registers.pc++;
             return;
         }
         case AddressingMode::HL_SPR: {
             // load stack pointer
             context_.fetched_data = memory_.read(context_.registers.pc);
-            // emu_cycles(1)
+            context_.update_cycles(1);
             context_.registers.pc++;
             return;
         }
@@ -142,9 +141,9 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
             auto& regs = context_.registers;
 
             uint16_t lo = memory_.read(regs.pc);
-            // emu_cycles(1)
+            context_.update_cycles(1);
             uint16_t hi = memory_.read(regs.pc + 1);
-            // emu_cycles(1)
+            context_.update_cycles(1);
 
             context_.memory_destination = (lo | (hi << 8));
             context_.destination_is_mem = true;
@@ -156,7 +155,7 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
             auto& regs = context_.registers;
 
             context_.fetched_data = memory_.read(regs.pc);
-            // emu_cycles(1)
+            context_.update_cycles(1);
             regs.pc++;
             context_.memory_destination = context_.read_reg(instruction.r1);
             context_.destination_is_mem = true;
@@ -168,22 +167,22 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
             context_.memory_destination = context_.read_reg(instruction.r1);
             context_.destination_is_mem = true;
             context_.fetched_data = memory_.read(context_.memory_destination);
-            // emu_cycles(1)
+            context_.update_cycles(1);
             return;
         }
         case AddressingMode::R_A16: {
             auto& regs = context_.registers;
 
             uint16_t lo = memory_.read(regs.pc);
-            // emu_cycles(1)
+            context_.update_cycles(1);
             uint16_t hi = memory_.read(regs.pc + 1);
-            // emu_cycles(1)
+            context_.update_cycles(1);
 
             uint16_t address = (lo | (hi << 8));
             regs.pc += 2;
 
             context_.fetched_data = memory_.read(address);
-            // emu_cycles(1)
+            context_.update_cycles(1);
             return;
         }
         default:
@@ -208,7 +207,7 @@ void CPU::run(std::stop_token token)
         if (context_.state == CPUState::RUNNING) {
             step();
         } else {
-            // emu_cycles(1);
+            context_.update_cycles(1);
             if (context_.interrupt_flags) {
                 context_.state = CPUState::RUNNING;
             }
@@ -222,7 +221,8 @@ void CPU::run(std::stop_token token)
         if (context_.enabling_ime) {
             context_.master_interrupt_enabled = true;
         }
-        // ticks_++;
+
+        context_.update_cycles(1);
     }
 }
 
@@ -232,13 +232,14 @@ void CPU::step()
 
     auto pc = regs.pc;
     context_.instruction = fetch_instruction();
+    context_.update_cycles(1);
     fetch_data(context_.instruction);
     auto& logger = logger::Logger::instance();
 
     logger.log(
         "{:08X} - {:04X}: {:12} ({:02X} {:02X} {:02X}) A: {:02X} F: {} BC: {:02X}{:02X} DE: {:02X}{:02X} "
         "HL: {:02X}{:02X}",
-        ticks_, pc, decode_instruction(context_, memory_), context_.current_opcode, memory_.read(pc + 1),
+        context_.ticks, pc, decode_instruction(context_, memory_), context_.current_opcode, memory_.read(pc + 1),
         memory_.read(pc + 2), regs.a, regs.get_flags_string(), regs.b, regs.c, regs.d, regs.e, regs.h, regs.l);
 
     if (context_.instruction.type == InstructionType::NONE) {

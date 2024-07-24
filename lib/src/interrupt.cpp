@@ -25,10 +25,11 @@ void InterruptHandler::handle_interrupts(CPUContext& context, memory::MMU& memor
     }
 }
 bool InterruptHandler::check_for_interrupt(
-    CPUContext& context, memory::MMU memory, uint16_t address, InterruptType interrupt)
+    CPUContext& context, memory::MMU& memory, uint16_t address, InterruptType interrupt)
 {
     auto to_byte_interrupt = std::to_underlying(interrupt);
     if ((context.interrupt_flags & to_byte_interrupt) && (memory.ie_register() & to_byte_interrupt)) {
+        std::cout << "CHECKING... " << std::endl;
         handle(context, memory, address);
         context.interrupt_flags &= ~to_byte_interrupt;
         context.state = CPUState::RUNNING;
@@ -38,9 +39,10 @@ bool InterruptHandler::check_for_interrupt(
 
     return false;
 }
-void InterruptHandler::handle(CPUContext& context, memory::MMU memory, uint16_t address)
+void InterruptHandler::handle(CPUContext& context, memory::MMU& memory, uint16_t address)
 {
-    stack_push16(context, memory, address);
+    // NEEDS TO SAVE THE OLD PROGRAM COUNTER AND JUMP TO THE INTERRUPT HANDLER
+    stack_push16(context, memory, context.registers.pc);
     context.registers.pc = address;
 }
 }  // namespace gameboy::cpu

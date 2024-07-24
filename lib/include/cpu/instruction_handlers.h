@@ -5,9 +5,10 @@
 #include <stdexcept>
 #include <utility>
 
-#include "mmu/mmu.h"
-#include "cpu/cpucontext.h"
 #include "cpu/instructions.h"
+#include "cpu/cpucontext.h"
+#include "mmu/mmu.h"
+
 #include "utils/logger.h"
 
 namespace gameboy::cpu {
@@ -15,38 +16,17 @@ namespace gameboy::cpu {
 using Handler = void (*)(CPUContext& context, memory::MMU&);
 using ExecutorsTable = std::array<Handler, NUM_INSTRUCTION_TYPES>;
 
-inline void stack_push(CPUContext& context, memory::MMU& memory, uint8_t value)
-{
-    context.registers.sp--;
-    memory.write(context.registers.sp, value);
-}
+void stack_push(CPUContext& context, memory::MMU& memory, uint8_t value);
 
-inline void stack_push16(CPUContext& context, memory::MMU& memory, uint16_t value)
-{
-    stack_push(context, memory, (value >> 8) & 0xFF);
-    stack_push(context, memory, value & 0xFF);
-}
+void stack_push16(CPUContext& context, memory::MMU& memory, uint16_t value);
 
-inline auto stack_pop(CPUContext& context, memory::MMU& memory) -> uint8_t
-{
-    return memory.read(context.registers.sp++);
-}
+auto stack_pop(CPUContext& context, memory::MMU& memory) -> uint8_t;
 
-inline auto stack_pop16(CPUContext& context, memory::MMU& memory) -> uint8_t
-{
-    const auto lo = stack_pop(context, memory);
-    const auto hi = stack_pop(context, memory);
-    return lo | (hi << 8);
-}
+auto stack_pop16(CPUContext& context, memory::MMU& memory) -> uint8_t;
 
-inline void none_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    throw std::runtime_error("CANNOT EXECUTE");
-}
+void none_handler(CPUContext& ctx, memory::MMU& memory);
 
-inline void nop_handler(CPUContext& ctx, memory::MMU& memory)
-{
-}
+void nop_handler(CPUContext& ctx, memory::MMU& memory);
 
 bool check_cond(CPUContext& context);
 void ld_handler(CPUContext& ctx, memory::MMU& memory);
@@ -88,94 +68,28 @@ void cp_handler(CPUContext& ctx, memory::MMU& memory);
 void cb_handler(CPUContext& ctx, memory::MMU& memory);
 
 // ************************* SPECIAL INSTRUCTIONS ******************************** //
-inline void rlca_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    uint8_t u = ctx.registers.a;
-    bool c = (u >> 7) & 1;
-    u = (u << 1) | c;  // 00000111 -> (00001110) | 0;
-    ctx.registers.a = u;
-    cpu_set_flag(ctx.registers.f, u == 0, 0, 0, c);
-}
+void rlca_handler(CPUContext& ctx, memory::MMU& memory);
 
-inline void rrca_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    uint8_t bit = ctx.registers.a & 1;
-    ctx.registers.a >>= 1;
-    ctx.registers.a |= (bit << 7);  // to wrap around
+void rrca_handler(CPUContext& ctx, memory::MMU& memory);
 
-    cpu_set_flag(ctx.registers.f, 0, 0, 0, bit);
-}
+void rla_handler(CPUContext& ctx, memory::MMU& memory);
 
-inline void rla_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    uint8_t u = ctx.registers.a;
-    uint8_t cf = ctx.registers.c_flag();
-    uint8_t c = (u >> 7) & 1;
-    ctx.registers.a = (u << 1) | cf;
-    cpu_set_flag(ctx.registers.f, 0, 0, 0, c);
-}
+void rra_handler(CPUContext& ctx, memory::MMU& memory);
 
-inline void rra_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    uint8_t cf = ctx.registers.c_flag();
-    uint8_t new_carry = ctx.registers.a & 0x1;
-    ctx.registers.a >>= 1;
-    ctx.registers.a |= (cf << 7);
+void stop_handler(CPUContext& ctx, memory::MMU& memory);
 
-    cpu_set_flag(ctx.registers.f, 0, 0, 0, new_carry);
-}
+void daa_handler(CPUContext& ctx, memory::MMU& memory);
 
-inline void stop_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    throw std::runtime_error("STOPPING....");
-}
+void cpl_handler(CPUContext& ctx, memory::MMU& memory);
 
-inline void daa_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    int8_t u = 0;
-    int fc = 0;
+void scf_handler(CPUContext& ctx, memory::MMU& memory);
 
-    auto& regs = ctx.registers;
-    if (regs.h_flag() || (!regs.n_flag() && (regs.a & 0xF) > 9)) {
-        u = 6;
-    }
+void ccf_handler(CPUContext& ctx, memory::MMU& memory);
 
-    if (regs.c_flag() || (!regs.n_flag() && regs.a > 0x99)) {
-        u |= 0x60;
-        fc = 1;
-    }
-
-    regs.a += regs.n_flag() ? -u : u;
-
-    cpu_set_flag(ctx.registers.f, regs.a == 0, -1, 0, fc);
-}
-
-inline void cpl_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    ctx.registers.a = ~ctx.registers.a;
-    cpu_set_flag(ctx.registers.f, -1, 1, 1, -1);
-}
-
-inline void scf_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    cpu_set_flag(ctx.registers.f, -1, 0, 0, 1);
-}
-
-inline void ccf_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    cpu_set_flag(ctx.registers.f, -1, 0, 0, ctx.registers.c_flag() ^ 1);
-}
-
-inline void halt_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    ctx.state = CPUState::HALT;
-}
+void halt_handler(CPUContext& ctx, memory::MMU& memory);
 
 void di_handler(CPUContext& ctx, memory::MMU& memory);
-inline void ei_handler(CPUContext& ctx, memory::MMU& memory)
-{
-    ctx.enabling_ime = true;
-}
+void ei_handler(CPUContext& ctx, memory::MMU& memory);
 
 constexpr auto make_executors_table() -> const ExecutorsTable
 {

@@ -41,102 +41,85 @@ constexpr std::string decode_instruction(const CPUContext& ctx, const memory::MM
 
         case AddressingMode::R_D16:
         case AddressingMode::R_A16:
-            // sprintf(str, "%s %s,$%04X", inst_name(inst->type), rt_lookup[inst->reg_1], ctx->fetched_data);
             converted_instruction =
                 std::format("{} {},${:04X}", get_instruction_name(inst.type), get_reg_name(inst.r1), ctx.fetched_data);
             break;
 
         case AddressingMode::R:
-            // sprintf(str, "%s %s", inst_name(inst->type), rt_lookup[inst->reg_1]);
             converted_instruction = std::format("{} {}", get_instruction_name(inst.type), get_reg_name(inst.r1));
             break;
 
         case AddressingMode::R_R:
-            // sprintf(str, "%s %s,%s", inst_name(inst->type), rt_lookup[inst->reg_1], rt_lookup[inst->reg_2]);
             converted_instruction =
                 std::format("{} {},{}", get_instruction_name(inst.type), get_reg_name(inst.r1), get_reg_name(inst.r2));
             break;
 
         case AddressingMode::MR_R:
-            // sprintf(str, "%s (%s),%s", inst_name(inst->type), rt_lookup[inst->reg_1], rt_lookup[inst->reg_2]);
             converted_instruction = std::format(
                 "{} ({}),{}", get_instruction_name(inst.type), get_reg_name(inst.r1), get_reg_name(inst.r2));
             break;
 
         case AddressingMode::MR:
-            // sprintf(str, "%s (%s)", inst_name(inst->type), rt_lookup[inst->reg_1]);
             converted_instruction = std::format("{} ({})", get_instruction_name(inst.type), get_reg_name(inst.r1));
             break;
 
         case AddressingMode::R_MR:
-            // sprintf(str, "%s %s,(%s)", inst_name(inst->type), rt_lookup[inst->reg_1], rt_lookup[inst->reg_2]);
             converted_instruction = std::format(
                 "{} {},({})", get_instruction_name(inst.type), get_reg_name(inst.r1), get_reg_name(inst.r2));
             break;
 
         case AddressingMode::R_D8:
         case AddressingMode::R_A8:
-            // sprintf(str, "%s %s,$%02X", inst_name(inst->type), rt_lookup[inst->reg_1], ctx->fetched_data & 0xFF);
             converted_instruction = std::format(
                 "{} {},${:02X}", get_instruction_name(inst.type), get_reg_name(inst.r1), ctx.fetched_data & 0xFF);
             break;
 
         case AddressingMode::R_HLI:
-            // sprintf(str, "%s %s,(%s+)", inst_name(inst->type), rt_lookup[inst->reg_1], rt_lookup[inst->reg_2]);
             converted_instruction = std::format(
                 "{} {},({}+)", get_instruction_name(inst.type), get_reg_name(inst.r1), get_reg_name(inst.r2));
             break;
 
         case AddressingMode::R_HLD:
-            // sprintf(str, "%s %s,(%s-)", inst_name(inst->type), rt_lookup[inst->reg_1], rt_lookup[inst->reg_2]);
             converted_instruction = std::format(
                 "{} {},({}-)", get_instruction_name(inst.type), get_reg_name(inst.r1), get_reg_name(inst.r2));
             break;
 
         case AddressingMode::HLI_R:
-            // sprintf(str, "%s (%s+),%s", inst_name(inst->type), rt_lookup[inst->reg_1], rt_lookup[inst->reg_2]);
             converted_instruction = std::format(
                 "{} ({}+),{}", get_instruction_name(inst.type), get_reg_name(inst.r1), get_reg_name(inst.r2));
             break;
 
         case AddressingMode::HLD_R:
-            // sprintf(str, "%s (%s-),%s", inst_name(inst->type), rt_lookup[inst->reg_1], rt_lookup[inst->reg_2]);
             converted_instruction = std::format(
                 "{} ({}-),{}", get_instruction_name(inst.type), get_reg_name(inst.r1), get_reg_name(inst.r2));
             break;
 
         case AddressingMode::A8_R:
-            // sprintf(str, "%s $%02X,%s", inst_name(inst->type), bus_read(ctx->regs.pc - 1), rt_lookup[inst->reg_2]);
             converted_instruction = std::format(
                 "{} ${:02X},{}", get_instruction_name(inst.type), memory.read(ctx.registers.pc - 1),
                 get_reg_name(inst.r2));
             break;
 
         case AddressingMode::HL_SPR:
-            // sprintf(str, "%s (%s),SP+%d", inst_name(inst->type), rt_lookup[inst->reg_1], ctx->fetched_data & 0xFF);
             converted_instruction = std::format(
                 "{} ({}),SP+{}", get_instruction_name(inst.type), memory.read(ctx.registers.pc - 1),
                 ctx.fetched_data & 0xFF);
             break;
 
         case AddressingMode::D8:
-            // sprintf(str, "%s $%02X", inst_name(inst->type), ctx->fetched_data & 0xFF);
             converted_instruction = std::format("{} ${:02X}", get_instruction_name(inst.type), ctx.fetched_data & 0xFF);
             break;
 
         case AddressingMode::D16:
-            // sprintf(str, "%s $%04X", inst_name(inst->type), ctx->fetched_data);
             converted_instruction = std::format("{} ${:04X}", get_instruction_name(inst.type), ctx.fetched_data);
             break;
 
         case AddressingMode::MR_D8:
-            // sprintf(str, "%s (%s),$%02X", inst_name(inst->type), rt_lookup[inst->reg_1], ctx->fetched_data & 0xFF);
             converted_instruction = std::format(
                 "{} ({}),${:02X}", get_instruction_name(inst.type), get_reg_name(inst.r1), ctx.fetched_data & 0xFF);
             break;
 
         case AddressingMode::A16_R:
-            // sprintf(str, "%s ($%04X),%s", inst_name(inst->type), ctx->fetched_data, rt_lookup[inst->reg_2]);
             converted_instruction = std::format(
                 "{} (${:04X}),{}", get_instruction_name(inst.type), ctx.fetched_data, get_reg_name(inst.r2));
             break;
@@ -151,7 +134,7 @@ class CPU
 {
    public:
     CPU(CPURegisters initial_state, cartridge::Cartridge& cartridge)
-        : context_{std::move(initial_state)}, memory_(cartridge)
+        : context_{std::move(initial_state)}, memory_(cartridge, context_)
     {
         context_.registers.pc = 0x100;
         context_.registers.sp = 0xFFFE;
@@ -177,7 +160,6 @@ class CPU
     CPUContext context_{};
     memory::MMU memory_;
     InterruptHandler handler_{};
-    size_t ticks_{0};
     static constexpr auto instruction_set_ = initialize_instruction_set();
     static constexpr auto executors_ = make_executors_table();
 

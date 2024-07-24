@@ -56,10 +56,9 @@ void add_handler(CPUContext& ctx, memory::MMU& mmu)
 
     [[maybe_unused]] bool is_16_bit = CPUContext::is_16_bit(ctx.instruction.r1);
 
-    // if(is_16_bit)
-    // {
-    //     emu_cycles(1);
-    // }
+    if (is_16_bit) {
+        ctx.update_cycles(1);
+    }
 
     if (ctx.instruction.r1 == RegisterType::SP) {
         val = ctx.read_reg(ctx.instruction.r1) + static_cast<char>(ctx.fetched_data);
@@ -91,15 +90,14 @@ void dec_handler(CPUContext& ctx, memory::MMU& memory)
 {
     uint16_t val = ctx.read_reg(ctx.instruction.r1) - 1;
 
-    if (CPUContext::is_16_bit(ctx.instruction.r2)) {
-        // emu_cycles(1); add one cycle
+    if (CPUContext::is_16_bit(ctx.instruction.r1)) {
+        ctx.update_cycles(1);
     }
 
     auto& instruction = ctx.instruction;
     if (instruction.r1 == RegisterType::HL && instruction.mode == AddressingMode::MR) {
         auto address = ctx.read_reg(RegisterType::HL);
-        auto val = memory.read(address) - 1;
-        val &= 0xFF;
+        val = memory.read(address) - 1;
         memory.write(address, val);
     } else {
         ctx.set_reg(instruction.r1, val);
@@ -110,16 +108,15 @@ void dec_handler(CPUContext& ctx, memory::MMU& memory)
         return;
     }
 
-    // TODO: Correct CPU Set flags (which is not totally correct)
-    cpu_set_flag(ctx.registers.f, val == 0, 1, (val & 0x0F) == 0x0F, -1);
+    cpu_set_flag(ctx.registers.f, val == 0, 1, ((val & 0x0F) == 0x0F), -1);
     return;
 }
 void inc_handler(CPUContext& ctx, memory::MMU& memory)
 {
     auto val = ctx.read_reg(ctx.instruction.r1) + 1;
 
-    if (CPUContext::is_16_bit(ctx.instruction.r2)) {
-        // emu_cycles(1); add one cycle
+    if (CPUContext::is_16_bit(ctx.instruction.r1)) {
+        ctx.update_cycles(1);
     }
 
     auto& instruction = ctx.instruction;
@@ -152,19 +149,19 @@ void reti_handler(CPUContext& ctx, memory::MMU& memory)
 }
 void ret_handler(CPUContext& ctx, memory::MMU& memory)
 {
-    // if (ctx.instruction.condition != ConditionType::None) {
-    //     emu_cycles(1);
-    // }
+    if (ctx.instruction.condition != ConditionType::None) {
+        ctx.update_cycles(1);
+    }
 
     if (check_cond(ctx)) {
         const uint16_t lo = stack_pop(ctx, memory);
-        // emu_cycles(1);
+        ctx.update_cycles(1);
         const uint16_t hi = stack_pop(ctx, memory);
-        // emu_cycles(1);
+        ctx.update_cycles(1);
 
         const uint16_t ret_address = lo | (hi << 8);
         ctx.registers.pc = ret_address;
-        // emu_cycles(1);
+        ctx.update_cycles(1);
     }
 }
 void call_handler(CPUContext& ctx, memory::MMU& memory)
@@ -185,20 +182,20 @@ void jump_to_addr(CPUContext& ctx, memory::MMU& memory, uint16_t addr, bool push
 {
     if (check_cond(ctx)) {
         if (push_pc) {
-            // emu_cycles(2);
+            ctx.update_cycles(2);
             stack_push16(ctx, memory, ctx.registers.pc);
         }
 
         ctx.registers.pc = addr;
-        // emu_cycles(1)
+        ctx.update_cycles(1);
     }
 }
 void pop_handler(CPUContext& ctx, memory::MMU& memory)
 {
     const auto lo = stack_pop(ctx, memory);
-    // emu_cycles(1);
+    ctx.update_cycles(1);
     const auto hi = stack_pop(ctx, memory);
-    // emu_cycles(1);
+    ctx.update_cycles(1);
 
     const auto value = lo | (hi << 8);
     const auto reg1 = ctx.instruction.r1;
@@ -212,16 +209,16 @@ void pop_handler(CPUContext& ctx, memory::MMU& memory)
 }
 void push_handler(CPUContext& ctx, memory::MMU& memory)
 {
-    const auto value_to_push = ctx.read_reg(ctx.instruction.r1);
-    auto hi = (value_to_push >> 8) & 0xFF;
-    // emu_cycles(1);
+    const uint16_t value_to_push = ctx.read_reg(ctx.instruction.r1);
+    uint16_t hi = (value_to_push >> 8) & 0xFF;
+    ctx.update_cycles(1);
     stack_push(ctx, memory, hi);
 
-    auto lo = (ctx.read_reg(ctx.instruction.r1)) & 0xFF;
-    // emu_cycles(1);
+    uint16_t lo = (ctx.read_reg(ctx.instruction.r1)) & 0xFF;
+    ctx.update_cycles(1);
     stack_push(ctx, memory, lo);
 
-    // emu_cycles(1);
+    ctx.update_cycles(1);
 }
 void ldh_handler(CPUContext& ctx, memory::MMU& memory)
 {
@@ -231,7 +228,7 @@ void ldh_handler(CPUContext& ctx, memory::MMU& memory)
         memory.write(ctx.memory_destination, ctx.registers.a);
     }
 
-    // emu_cycles(1);
+    ctx.update_cycles(1);
 }
 void di_handler(CPUContext& ctx, memory::MMU& memory)
 {
@@ -241,13 +238,13 @@ void ld_handler(CPUContext& ctx, memory::MMU& memory)
 {
     if (ctx.destination_is_mem) {
         if (CPUContext::is_16_bit(ctx.instruction.r2)) {
-            // emu_cycles(1)
+            ctx.update_cycles(1);
             memory.write16(ctx.memory_destination, ctx.fetched_data);
         } else {
             memory.write(ctx.memory_destination, ctx.fetched_data);
         }
 
-        // emu_cycles(1);
+        ctx.update_cycles(1);
         return;
     }
 
@@ -334,9 +331,9 @@ void cb_handler(CPUContext& ctx, memory::MMU& memory)
     uint8_t bit_op = (op >> 6) & 0b11;  // bit operation that we perform
 
     auto value = ctx.read_reg8(reg);
-    // emu_cycles(1);
+    ctx.update_cycles(1);
     if (reg == RegisterType::HL) {
-        // emu_cycles(2);
+        ctx.update_cycles(2);
         value = memory.read(ctx.read_reg(RegisterType::HL));
     }
 
@@ -441,5 +438,109 @@ void cb_handler(CPUContext& ctx, memory::MMU& memory)
 
     throw std::runtime_error("Invalid CB instruction...");
     return;
+}
+void stack_push(CPUContext& context, memory::MMU& memory, uint8_t value)
+{
+    context.registers.sp--;
+    memory.write(context.registers.sp, value);
+}
+void stack_push16(CPUContext& context, memory::MMU& memory, uint16_t value)
+{
+    stack_push(context, memory, (value >> 8) & 0xFF);
+    stack_push(context, memory, value & 0xFF);
+}
+auto stack_pop(CPUContext& context, memory::MMU& memory) -> uint8_t
+{
+    return memory.read(context.registers.sp++);
+}
+auto stack_pop16(CPUContext& context, memory::MMU& memory) -> uint8_t
+{
+    const auto lo = stack_pop(context, memory);
+    const auto hi = stack_pop(context, memory);
+    return lo | (hi << 8);
+}
+void none_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    throw std::runtime_error("CANNOT EXECUTE");
+}
+void nop_handler(CPUContext& ctx, memory::MMU& memory)
+{
+}
+void rlca_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    uint8_t u = ctx.registers.a;
+    bool c = (u >> 7) & 1;
+    u = (u << 1) | c;  // 00000111 -> (00001110) | 0;
+    ctx.registers.a = u;
+    cpu_set_flag(ctx.registers.f, u == 0, 0, 0, c);
+}
+void rrca_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    uint8_t bit = ctx.registers.a & 1;
+    ctx.registers.a >>= 1;
+    ctx.registers.a |= (bit << 7);  // to wrap around
+
+    cpu_set_flag(ctx.registers.f, 0, 0, 0, bit);
+}
+void rla_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    uint8_t u = ctx.registers.a;
+    uint8_t cf = ctx.registers.c_flag();
+    uint8_t c = (u >> 7) & 1;
+    ctx.registers.a = (u << 1) | cf;
+    cpu_set_flag(ctx.registers.f, 0, 0, 0, c);
+}
+void rra_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    uint8_t cf = ctx.registers.c_flag();
+    uint8_t new_carry = ctx.registers.a & 0x1;
+    ctx.registers.a >>= 1;
+    ctx.registers.a |= (cf << 7);
+
+    cpu_set_flag(ctx.registers.f, 0, 0, 0, new_carry);
+}
+void stop_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    throw std::runtime_error("STOPPING....");
+}
+void daa_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    int8_t u = 0;
+    int fc = 0;
+
+    auto& regs = ctx.registers;
+    if (regs.h_flag() || (!regs.n_flag() && (regs.a & 0xF) > 9)) {
+        u = 6;
+    }
+
+    if (regs.c_flag() || (!regs.n_flag() && regs.a > 0x99)) {
+        u |= 0x60;
+        fc = 1;
+    }
+
+    regs.a += regs.n_flag() ? -u : u;
+
+    cpu_set_flag(ctx.registers.f, regs.a == 0, -1, 0, fc);
+}
+void cpl_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    ctx.registers.a = ~ctx.registers.a;
+    cpu_set_flag(ctx.registers.f, -1, 1, 1, -1);
+}
+void scf_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    cpu_set_flag(ctx.registers.f, -1, 0, 0, 1);
+}
+void ccf_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    cpu_set_flag(ctx.registers.f, -1, 0, 0, ctx.registers.c_flag() ^ 1);
+}
+void halt_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    ctx.state = CPUState::HALT;
+}
+void ei_handler(CPUContext& ctx, memory::MMU& memory)
+{
+    ctx.enabling_ime = true;
 }
 }  // namespace gameboy::cpu

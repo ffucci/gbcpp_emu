@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <thread>
 #include "cartridge/cartridge.h"
+#include "cpu/cpucontext.h"
 #include "mmu/ram.h"
 #include "utils/logger.h"
 
@@ -30,7 +31,7 @@ class MMU
 {
    public:
     MMU() = delete;
-    explicit MMU(cartridge::Cartridge& cartridge) : cartridge_(cartridge)
+    explicit MMU(cartridge::Cartridge& cartridge, cpu::CPUContext& context) : cartridge_(cartridge), device_(context)
     {
     }
 
@@ -47,7 +48,7 @@ class MMU
    private:
     cartridge::Cartridge& cartridge_;
     RAM ram_{};
-    io::Device device_{};
+    io::Device device_;
     uint8_t int_enable_register_{0};
 
     static constexpr uint16_t HRAM_LIMIT{0x8000};

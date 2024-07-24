@@ -11,6 +11,8 @@ add_library(gbemu_lib
     src/interrupt.cpp
     src/mmu.cpp
     src/ram.cpp
+    src/timer.cpp
+    src/device.cpp
 )
 
 target_include_directories(gbemu_lib PUBLIC include)

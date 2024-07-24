@@ -396,7 +396,7 @@ constexpr std::array<Instruction, NUM_OPCODES> initialize_instruction_set()
 
     all_instructions[0xC8] = {
         InstructionType::RET, AddressingMode::IMP, RegisterType::None, RegisterType::None, ConditionType::Z};
-    all_instructions[0xC9] = {InstructionType::RET, AddressingMode::IMP};
+    all_instructions[0xC9] = {InstructionType::RET};
 
     all_instructions[0xCA] = {
         InstructionType::JP, AddressingMode::D16, RegisterType::None, RegisterType::None, ConditionType::Z};
