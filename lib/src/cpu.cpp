@@ -178,7 +178,8 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
             uint16_t hi = memory_.read(regs.pc + 1);
             context_.update_cycles(1);
 
-            uint16_t address = (lo | (hi << 8));
+            uint16_t address = lo | (hi << 8);
+            std::cout << std::format("address: {:04X}", address) << std::endl;
             regs.pc += 2;
 
             context_.fetched_data = memory_.read(address);

@@ -8,14 +8,7 @@ namespace gameboy::cpu {
 void sbc_handler(CPUContext& ctx, memory::MMU& memory)
 {
     auto cpu_flag_c = ctx.registers.c_flag();
-    uint16_t val = ctx.fetched_data + cpu_flag_c;
-
-    // int z = cpu_read_reg(ctx->cur_inst->reg_1) - val == 0;
-
-    // int h = ((int)cpu_read_reg(ctx->cur_inst->reg_1) & 0xF)
-    //     - ((int)ctx->fetched_data & 0xF) - ((int)CPU_FLAG_C) < 0;
-    // int c = ((int)cpu_read_reg(ctx->cur_inst->reg_1))
-    //     - ((int)ctx->fetched_data) - ((int)CPU_FLAG_C) < 0;
+    uint8_t val = ctx.fetched_data + cpu_flag_c;
 
     const uint16_t r1_val = ctx.read_reg(ctx.instruction.r1);
     int z = (r1_val - val == 0);
@@ -474,6 +467,7 @@ void rlca_handler(CPUContext& ctx, memory::MMU& memory)
     ctx.registers.a = u;
     cpu_set_flag(ctx.registers.f, u == 0, 0, 0, c);
 }
+
 void rrca_handler(CPUContext& ctx, memory::MMU& memory)
 {
     uint8_t bit = ctx.registers.a & 1;

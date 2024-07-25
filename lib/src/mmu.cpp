@@ -4,12 +4,13 @@ namespace gameboy::memory {
 
 auto MMU::read(uint16_t address) const -> uint8_t
 {
+    auto& logger = logger::Logger::instance();
+
     if (address < HRAM_LIMIT) {
         return cartridge_.read(address);
     }
 
     if (address < CHR_RAM_LIMIT) {
-        auto& logger = logger::Logger::instance();
         logger.log("Unsupported BUS read @{:4X}", address);
         std::this_thread::sleep_for(std::chrono::microseconds(100));
         exit(-7);
@@ -20,6 +21,9 @@ auto MMU::read(uint16_t address) const -> uint8_t
     }
 
     if (address < 0xE000) {
+        if constexpr (DEBUG) {
+            logger.log("bus_read({:04X})", address);
+        }
         // We go into the WRAM
         return ram_.wram_read(address);
     }
@@ -61,10 +65,6 @@ auto MMU::write(uint16_t address, uint8_t value) -> void
 {
     auto& logger = logger::Logger::instance();
 
-    if constexpr (DEBUG) {
-        logger.log("WRITE> address {:04X} , value {:04X}", address, value);
-    }
-
     if (address < HRAM_LIMIT) {
         cartridge_.write(address, value);
         return;
@@ -83,6 +83,9 @@ auto MMU::write(uint16_t address, uint8_t value) -> void
 
     if (address < 0xE000) {
         // WRAM write
+        if constexpr (DEBUG) {
+            logger.log("bus_write({:04X}, {:02X})", address, value);
+        }
         ram_.wram_write(address, value);
         return;
     }
@@ -118,7 +121,7 @@ auto MMU::write(uint16_t address, uint8_t value) -> void
 
     ram_.hram_write(address, value);
 }
-auto MMU::write16(uint16_t address, uint8_t value) -> void
+auto MMU::write16(uint16_t address, uint16_t value) -> void
 {
     write(address + 1, (value >> 8) & 0xFF);
     write(address, value & 0xFF);
