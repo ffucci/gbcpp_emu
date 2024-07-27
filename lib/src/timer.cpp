@@ -47,7 +47,6 @@ void Timer::write(uint16_t address, uint8_t value)
             break;
         case 0xFF07:
             // TAC
-            std::cout << "TAC: " << static_cast<int>(context_.tac) << std::endl;
             context_.tac = value;
             break;
     }

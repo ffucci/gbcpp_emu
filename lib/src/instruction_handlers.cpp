@@ -115,7 +115,7 @@ void inc_handler(CPUContext& ctx, memory::MMU& memory)
     auto& instruction = ctx.instruction;
     if (instruction.r1 == RegisterType::HL && instruction.mode == AddressingMode::MR) {
         auto address = ctx.read_reg(RegisterType::HL);
-        auto val = memory.read(address) + 1;
+        val = memory.read(address) + 1;
         val &= 0xFF;
         memory.write(address, val);
     } else {
@@ -465,7 +465,7 @@ void rlca_handler(CPUContext& ctx, memory::MMU& memory)
     bool c = (u >> 7) & 1;
     u = (u << 1) | c;  // 00000111 -> (00001110) | 0;
     ctx.registers.a = u;
-    cpu_set_flag(ctx.registers.f, u == 0, 0, 0, c);
+    cpu_set_flag(ctx.registers.f, 0, 0, 0, c);
 }
 
 void rrca_handler(CPUContext& ctx, memory::MMU& memory)

@@ -135,6 +135,7 @@ constexpr auto make_executors_table() -> const ExecutorsTable
     table_[std::to_underlying(InstructionType::SCF)] = scf_handler;
     table_[std::to_underlying(InstructionType::CCF)] = ccf_handler;
     table_[std::to_underlying(InstructionType::HALT)] = halt_handler;
+    table_[std::to_underlying(InstructionType::STOP)] = stop_handler;
 
     table_[std::to_underlying(InstructionType::DI)] = di_handler;
     table_[std::to_underlying(InstructionType::EI)] = ei_handler;

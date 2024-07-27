@@ -29,7 +29,6 @@ bool InterruptHandler::check_for_interrupt(
 {
     auto to_byte_interrupt = std::to_underlying(interrupt);
     if ((context.interrupt_flags & to_byte_interrupt) && (memory.ie_register() & to_byte_interrupt)) {
-        std::cout << "CHECKING... " << std::endl;
         handle(context, memory, address);
         context.interrupt_flags &= ~to_byte_interrupt;
         context.state = CPUState::RUNNING;

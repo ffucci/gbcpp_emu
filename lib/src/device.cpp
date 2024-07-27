@@ -21,7 +21,7 @@ uint8_t Device::read(uint16_t address) const noexcept
     }
 
     auto& logger = logger::Logger::instance();
-    logger.log("Unsupported bus_read access({:04X})", address);
+    logger.log("UNSUPPORTED bus_read({:04X})", address);
     return 0;
 }
 
