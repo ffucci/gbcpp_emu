@@ -119,8 +119,8 @@ void inc_handler(CPUContext& ctx, memory::MMU& memory)
         val &= 0xFF;
         memory.write(address, val);
     } else {
-        ctx.set_reg(ctx.instruction.r1, val);
-        val = ctx.read_reg(ctx.instruction.r1);
+        ctx.set_reg(ctx.instruction.r1, val);  // We set and read because the variable is saved with a mask
+        val &= 0xFF;
     }
 
     if ((ctx.current_opcode & 0x03) == 0x03) {
