@@ -53,7 +53,9 @@ int main(int argc, char** argv)
 
     while (!emulation.stop) {
         std::this_thread::sleep_for(std::chrono::microseconds(100));
+
         gameboy.wait_for_events();
+        gameboy.ui_update();
     }
 
     cpu_thread.request_stop();

@@ -172,17 +172,6 @@ struct CPUContext
     uint64_t ticks{0};
     timer::Timer timer;
 
-    void update_cycles(size_t cycles)
-    {
-        auto n = cycles * 4;
-
-        for (auto i = 0ul; i < n; ++i) {
-            ticks++;
-            // timer_tick
-            timer.tick(interrupt_flags);
-        }
-    }
-
     // Read registry
     auto read_reg(RegisterType rt) -> uint16_t
     {

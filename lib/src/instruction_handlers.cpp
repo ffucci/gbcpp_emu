@@ -1,6 +1,7 @@
 #include "cpu/instruction_handlers.h"
 #include <cstdint>
 #include <utility>
+#include "cpu/utils.h"
 #include "utils/logger.h"
 
 namespace gameboy::cpu {
@@ -50,7 +51,7 @@ void add_handler(CPUContext& ctx, memory::MMU& mmu)
     [[maybe_unused]] bool is_16_bit = CPUContext::is_16_bit(ctx.instruction.r1);
 
     if (is_16_bit) {
-        ctx.update_cycles(1);
+        update_cycles(1, ctx, mmu);
     }
 
     if (ctx.instruction.r1 == RegisterType::SP) {
@@ -84,7 +85,7 @@ void dec_handler(CPUContext& ctx, memory::MMU& memory)
     uint16_t val = ctx.read_reg(ctx.instruction.r1) - 1;
 
     if (CPUContext::is_16_bit(ctx.instruction.r1)) {
-        ctx.update_cycles(1);
+        update_cycles(1, ctx, memory);
     }
 
     auto& instruction = ctx.instruction;
@@ -109,7 +110,7 @@ void inc_handler(CPUContext& ctx, memory::MMU& memory)
     auto val = ctx.read_reg(ctx.instruction.r1) + 1;
 
     if (CPUContext::is_16_bit(ctx.instruction.r1)) {
-        ctx.update_cycles(1);
+        update_cycles(1, ctx, memory);
     }
 
     auto& instruction = ctx.instruction;
@@ -143,18 +144,18 @@ void reti_handler(CPUContext& ctx, memory::MMU& memory)
 void ret_handler(CPUContext& ctx, memory::MMU& memory)
 {
     if (ctx.instruction.condition != ConditionType::None) {
-        ctx.update_cycles(1);
+        update_cycles(1, ctx, memory);
     }
 
     if (check_cond(ctx)) {
         const uint16_t lo = stack_pop(ctx, memory);
-        ctx.update_cycles(1);
+        update_cycles(1, ctx, memory);
         const uint16_t hi = stack_pop(ctx, memory);
-        ctx.update_cycles(1);
+        update_cycles(1, ctx, memory);
 
         const uint16_t ret_address = lo | (hi << 8);
         ctx.registers.pc = ret_address;
-        ctx.update_cycles(1);
+        update_cycles(1, ctx, memory);
     }
 }
 void call_handler(CPUContext& ctx, memory::MMU& memory)
@@ -175,20 +176,20 @@ void jump_to_addr(CPUContext& ctx, memory::MMU& memory, uint16_t addr, bool push
 {
     if (check_cond(ctx)) {
         if (push_pc) {
-            ctx.update_cycles(2);
+            update_cycles(2, ctx, memory);
             stack_push16(ctx, memory, ctx.registers.pc);
         }
 
         ctx.registers.pc = addr;
-        ctx.update_cycles(1);
+        update_cycles(1, ctx, memory);
     }
 }
 void pop_handler(CPUContext& ctx, memory::MMU& memory)
 {
     const auto lo = stack_pop(ctx, memory);
-    ctx.update_cycles(1);
+    update_cycles(1, ctx, memory);
     const auto hi = stack_pop(ctx, memory);
-    ctx.update_cycles(1);
+    update_cycles(1, ctx, memory);
 
     const auto value = lo | (hi << 8);
     const auto reg1 = ctx.instruction.r1;
@@ -204,14 +205,14 @@ void push_handler(CPUContext& ctx, memory::MMU& memory)
 {
     const uint16_t value_to_push = ctx.read_reg(ctx.instruction.r1);
     uint16_t hi = (value_to_push >> 8) & 0xFF;
-    ctx.update_cycles(1);
+    update_cycles(1, ctx, memory);
     stack_push(ctx, memory, hi);
 
     uint16_t lo = (ctx.read_reg(ctx.instruction.r1)) & 0xFF;
-    ctx.update_cycles(1);
+    update_cycles(1, ctx, memory);
     stack_push(ctx, memory, lo);
 
-    ctx.update_cycles(1);
+    update_cycles(1, ctx, memory);
 }
 void ldh_handler(CPUContext& ctx, memory::MMU& memory)
 {
@@ -221,7 +222,7 @@ void ldh_handler(CPUContext& ctx, memory::MMU& memory)
         memory.write(ctx.memory_destination, ctx.registers.a);
     }
 
-    ctx.update_cycles(1);
+    update_cycles(1, ctx, memory);
 }
 void di_handler(CPUContext& ctx, memory::MMU& memory)
 {
@@ -231,13 +232,13 @@ void ld_handler(CPUContext& ctx, memory::MMU& memory)
 {
     if (ctx.destination_is_mem) {
         if (CPUContext::is_16_bit(ctx.instruction.r2)) {
-            ctx.update_cycles(1);
+            update_cycles(1, ctx, memory);
             memory.write16(ctx.memory_destination, ctx.fetched_data);
         } else {
             memory.write(ctx.memory_destination, ctx.fetched_data);
         }
 
-        ctx.update_cycles(1);
+        update_cycles(1, ctx, memory);
         return;
     }
 
@@ -324,9 +325,9 @@ void cb_handler(CPUContext& ctx, memory::MMU& memory)
     uint8_t bit_op = (op >> 6) & 0b11;  // bit operation that we perform
 
     auto value = ctx.read_reg8(reg);
-    ctx.update_cycles(1);
+    update_cycles(1, ctx, memory);
     if (reg == RegisterType::HL) {
-        ctx.update_cycles(2);
+        update_cycles(2, ctx, memory);
         value = memory.read(ctx.read_reg(RegisterType::HL));
     }
 

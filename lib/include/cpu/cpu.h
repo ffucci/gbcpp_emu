@@ -16,6 +16,7 @@
 #include "cpu/interrupt.h"
 #include "instructions.h"
 #include "io/debug.h"
+#include "mmu/dma.h"
 #include "mmu/mmu.h"
 
 namespace gameboy::cpu {
@@ -148,6 +149,11 @@ class CPU
     }
 
     void run(std::stop_token token);
+
+    auto memory() -> const memory::MMU&
+    {
+        return memory_;
+    }
 
    private:
     auto step() -> void;

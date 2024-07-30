@@ -1,4 +1,5 @@
 #include "mmu/mmu.h"
+#include "ppu/ppu.h"
 
 namespace gameboy::memory {
 
@@ -11,9 +12,7 @@ auto MMU::read(uint16_t address) const -> uint8_t
     }
 
     if (address < CHR_RAM_LIMIT) {
-        logger.log("Unsupported BUS read @{:4X}", address);
-        std::this_thread::sleep_for(std::chrono::microseconds(100));
-        exit(-7);
+        return ppu_.read<ppu::PPUWriteType::VRAM>(address);
     }
 
     if (address < 0xC000) {
@@ -33,10 +32,9 @@ auto MMU::read(uint16_t address) const -> uint8_t
         return 0;
     }
 
+    // PPU OAM
     if (address < 0xFEA0) {
-        auto& logger = logger::Logger::instance();
-        logger.log("UNSUPPORTED bus_read(@{:4X})", address);
-        return 0;
+        return ppu_.read<ppu::PPUWriteType::VRAM>(address);
     }
 
     if (address < 0xFF00) {
@@ -71,8 +69,7 @@ auto MMU::write(uint16_t address, uint8_t value) -> void
     }
 
     if (address < CHR_RAM_LIMIT) {
-        // throw std::runtime_error(std::format("NOT IMPL {:X}", address));
-        logger.log("UNSUPPORTED bus_write({:04X})", address);
+        ppu_.write<ppu::PPUWriteType::VRAM>(address, value);
         return;
     }
 
@@ -96,8 +93,10 @@ auto MMU::write(uint16_t address, uint8_t value) -> void
     }
 
     if (address < 0xFEA0) {
-        auto& logger = logger::Logger::instance();
-        logger.log("Unsuppored bus write {:04X}", address);
+        if (dma_.transfering()) {
+            return;
+        }
+        ppu_.write<ppu::PPUWriteType::OAM>(address, value);
         return;
     }
 
@@ -109,6 +108,12 @@ auto MMU::write(uint16_t address, uint8_t value) -> void
     }
 
     if (address < 0xFF80) {
+        // DMA start addres
+        if (address == 0xFF46) {
+            dma_.start(value);
+            logger.log("DMA start...");
+            return;
+        }
         device_.write(address, value);
         return;
     }

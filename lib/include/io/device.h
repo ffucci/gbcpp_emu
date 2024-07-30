@@ -23,5 +23,7 @@ class Device
     std::array<uint8_t, 2> serial_data_{};
 
     cpu::CPUContext& context_;
+
+    mutable uint8_t ly;  // Just for now
 };
 }  // namespace gameboy::io

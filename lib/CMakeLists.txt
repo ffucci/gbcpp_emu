@@ -13,6 +13,8 @@ add_library(gbemu_lib
     src/ram.cpp
     src/timer.cpp
     src/device.cpp
+    src/ppu.cpp
+    src/dma.cpp
 )
 
 target_include_directories(gbemu_lib PUBLIC include)
