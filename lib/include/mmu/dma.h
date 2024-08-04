@@ -28,7 +28,7 @@ struct DMA
         dma_context_.value = start;
     }
 
-    bool transfering()
+    inline bool transfering() const noexcept
     {
         return dma_context_.active != 0;
     }

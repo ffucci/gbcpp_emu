@@ -29,7 +29,9 @@ void none_handler(CPUContext& ctx, memory::MMU& memory);
 void nop_handler(CPUContext& ctx, memory::MMU& memory);
 
 bool check_cond(CPUContext& context);
+
 void ld_handler(CPUContext& ctx, memory::MMU& memory);
+
 void ldh_handler(CPUContext& ctx, memory::MMU& memory);
 
 // ************************* STACK INSTRUCTIONS *************************** //

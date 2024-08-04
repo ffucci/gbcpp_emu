@@ -170,5 +170,7 @@ class CPU
     static constexpr auto executors_ = make_executors_table();
 
     io::Debug debug_{};
+
+    static constexpr bool CPU_DEBUG{false};
 };
 }  // namespace gameboy::cpu

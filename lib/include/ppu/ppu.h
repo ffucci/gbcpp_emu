@@ -1,7 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include "cpu/cpucontext.h"
+#include "io/lcd.h"
 #include "ppu/ppu_context.h"
+#include "ppu/ppu_fsm.h"
 namespace gameboy::ppu {
 
 enum class PPUWriteType : int8_t
@@ -13,6 +16,11 @@ enum class PPUWriteType : int8_t
 class PPU
 {
    public:
+    PPU()
+    {
+        ppu_context_.video_buffer.resize(PPUContext::XRES * PPUContext::YRES);
+    }
+
     template <PPUWriteType WriteType>
     auto read(uint16_t address) const noexcept -> uint8_t
     {
@@ -43,12 +51,20 @@ class PPU
         }
     }
 
-    void tick()
+    void tick(lcd::LCD& lcd, cpu::CPUContext& context)
     {
+        ppu_context_.line_ticks++;
+        ppu_fsm_.handle(lcd, context);
+    }
+
+    auto context() const -> const PPUContext&
+    {
+        return ppu_context_;
     }
 
    private:
     PPUContext ppu_context_;
+    PPUFSM ppu_fsm_{ppu_context_};
 };
 
 }  // namespace gameboy::ppu

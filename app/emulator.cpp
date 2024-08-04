@@ -10,16 +10,7 @@
 
 #include <SDL.h>
 
-#include <boost/asio.hpp>
-
 #include "cpu/cpu.h"
-
-void close_handler(const boost::system::error_code& error, int signal_number)
-{
-    using namespace gameboy::logger;
-    auto& logger = Logger::instance();
-    logger.log("<-------- Closing GB-EMU -------->");
-}
 
 int main(int argc, char** argv)
 {
@@ -35,24 +26,15 @@ int main(int argc, char** argv)
     logger.log("... Starting GB-EMU .... ");
     logger.log("< Written by Francesco Fucci >");
 
-    boost::asio::io_context ioc;
-
     gameboy::cartridge::Cartridge cartridge(filename);
     gameboy::cpu::CPU cpu(gameboy::cpu::get_initial_state(), cartridge);
 
     gameboy::ui::Emulation emulation(cpu);
-    gameboy::ui::GameboyUI gameboy(emulation, ioc);
-
-    // boost::asio::signal_set signals(ioc, SIGINT);
-    // signals.async_wait([&ioc](auto error, auto signal_nr) {
-    //     ioc.stop();
-    //     close_handler(error, signal_nr);
-    // });
-
+    gameboy::ui::GameboyUI gameboy(emulation);
     std::jthread cpu_thread([&cpu](std::stop_token token) { cpu.run(token); });
 
     while (!emulation.stop) {
-        std::this_thread::sleep_for(std::chrono::microseconds(100));
+        std::this_thread::sleep_for(std::chrono::microseconds(1000));
 
         gameboy.wait_for_events();
         gameboy.ui_update();

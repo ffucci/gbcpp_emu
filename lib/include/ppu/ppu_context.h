@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <vector>
 #include "ppu/oam_data.h"
 
 namespace gameboy::ppu {
@@ -12,5 +13,13 @@ struct PPUContext
 
     std::array<OAMEntry, OAM_RAM_SIZE> oam_ram{};
     std::array<std::byte, VRAM_SIZE> vram{};
+
+    uint32_t current_frame{};
+    uint32_t line_ticks{};
+
+    std::vector<uint32_t> video_buffer{};
+
+    static constexpr uint16_t YRES{144};
+    static constexpr uint16_t XRES{160};
 };
 }  // namespace gameboy::ppu

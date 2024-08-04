@@ -19,6 +19,7 @@ void Timer::tick(uint8_t& interrupt_flags)
 
         if (context_.tima == 0xFF) {
             context_.tima = context_.tma;
+            // This should CPUContext.request_interrupt()
             interrupt_flags |= std::to_underlying(InterruptType::TIMER);
         }
     }

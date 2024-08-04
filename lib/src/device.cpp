@@ -20,10 +20,6 @@ uint8_t Device::read(uint16_t address) const noexcept
         return context_.interrupt_flags;
     }
 
-    if (address == 0xFF44)  // LCD
-    {
-        return ly++;
-    }
     auto& logger = logger::Logger::instance();
     logger.log("UNSUPPORTED bus_read({:04X})", address);
     return 0;

@@ -1,4 +1,5 @@
 #include "mmu/mmu.h"
+#include <cstdlib>
 #include "ppu/ppu.h"
 
 namespace gameboy::memory {
@@ -34,6 +35,9 @@ auto MMU::read(uint16_t address) const -> uint8_t
 
     // PPU OAM
     if (address < 0xFEA0) {
+        if (dma_.transfering()) {
+            return 0xFF;
+        }
         return ppu_.read<ppu::PPUWriteType::VRAM>(address);
     }
 
@@ -43,6 +47,9 @@ auto MMU::read(uint16_t address) const -> uint8_t
     }
 
     if (address < 0xFF80) {
+        if (is_lcd_space(address)) {
+            return lcd_.read(address);
+        }
         return device_.read(address);
     }
 
@@ -61,6 +68,12 @@ auto MMU::read16(uint16_t address) const -> uint16_t
 }
 auto MMU::write(uint16_t address, uint8_t value) -> void
 {
+    auto make_dma_read = [this](uint8_t start_value) {
+        auto& logger = logger::Logger::instance();
+        logger.log("DMA start... {:04x}", start_value);
+        return dma_.start(start_value);
+    };
+
     auto& logger = logger::Logger::instance();
 
     if (address < HRAM_LIMIT) {
@@ -108,10 +121,8 @@ auto MMU::write(uint16_t address, uint8_t value) -> void
     }
 
     if (address < 0xFF80) {
-        // DMA start addres
-        if (address == 0xFF46) {
-            dma_.start(value);
-            logger.log("DMA start...");
+        if (is_lcd_space(address)) {
+            lcd_.write(address, value, std::move(make_dma_read));
             return;
         }
         device_.write(address, value);

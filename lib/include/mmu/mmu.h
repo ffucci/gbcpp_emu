@@ -7,6 +7,7 @@
 #include <thread>
 #include "cartridge/cartridge.h"
 #include "cpu/cpucontext.h"
+#include "io/lcd.h"
 #include "mmu/dma.h"
 #include "mmu/ram.h"
 #include "ppu/ppu.h"
@@ -48,9 +49,14 @@ class MMU : public std::enable_shared_from_this<MMU>
 
     auto ie_register() -> uint8_t;
 
-    auto ppu() -> ppu::PPU&
+    auto ppu() const noexcept -> const ppu::PPU&
     {
         return ppu_;
+    }
+
+    void ppu_tick(cpu::CPUContext& context)
+    {
+        ppu_.tick(lcd_, context);
     }
 
     auto dma() -> mmu::DMA&
@@ -59,7 +65,7 @@ class MMU : public std::enable_shared_from_this<MMU>
     }
 
     // NEEDS TO BE RESTRUCTURED
-    void dma_tick()
+    inline void dma_tick()
     {
         if (dma_.dma_context_.active == 0) {
             return;
@@ -69,14 +75,10 @@ class MMU : public std::enable_shared_from_this<MMU>
             dma_.dma_context_.start_delay--;
             return;
         }
-        auto result_value = read((dma_.dma_context_.value * 0x100) + dma_.dma_context_.bt);
+        const auto result_value = read((dma_.dma_context_.value * 0x100) + dma_.dma_context_.bt);
         ppu_.write<ppu::PPUWriteType::OAM>(dma_.dma_context_.bt++, result_value);
 
         dma_.dma_context_.active = dma_.dma_context_.bt < 0xA0;  // up until 9F
-        if (!dma_.dma_context_.active) {
-            std::cout << "DMA DONE... " << std::endl;
-            std::this_thread::sleep_for(std::chrono::seconds(2));
-        }
     }
 
     ~MMU() = default;
@@ -87,12 +89,14 @@ class MMU : public std::enable_shared_from_this<MMU>
     ppu::PPU ppu_{};
     io::Device device_;
     mmu::DMA dma_;
+    lcd::LCD lcd_;
 
     uint8_t int_enable_register_{0};
 
     static constexpr uint16_t HRAM_LIMIT{0x8000};
     static constexpr uint16_t CHR_RAM_LIMIT{0xA000};
 
+    static constexpr auto is_lcd_space = [](uint16_t address) { return (address >= 0xFF40) && (address <= 0xFF4B); };
     static constexpr bool DEBUG{false};
 };
 

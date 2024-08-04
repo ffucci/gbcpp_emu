@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "cpu/instructions.h"
+#include "cpu/interrupt_type.h"
 #include "cpu/timer.h"
 
 namespace gameboy::cpu {
@@ -328,6 +329,11 @@ struct CPUContext
     static auto is_16_bit(RegisterType rt)
     {
         return rt >= RegisterType::AF;
+    }
+
+    inline void request_interrupt(InterruptType interrupt)
+    {
+        interrupt_flags |= std::to_underlying(interrupt);
     }
 };
 

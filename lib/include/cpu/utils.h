@@ -13,6 +13,7 @@ inline void update_cycles(size_t cycles, CPUContext& context, memory::MMU& memor
             context.ticks++;
             // timer_tick
             context.timer.tick(context.interrupt_flags);
+            memory.ppu_tick(context);
         }
 
         memory.dma_tick();

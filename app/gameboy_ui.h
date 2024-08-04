@@ -5,7 +5,6 @@
 #include <SDL_render.h>
 #include <SDL_video.h>
 #include <sys/types.h>
-#include <boost/asio/io_context.hpp>
 #include <cstdint>
 #include "cpu/cpu.h"
 
@@ -28,7 +27,7 @@ class GameboyUI
    public:
     GameboyUI() = delete;
 
-    GameboyUI(Emulation& emulation, boost::asio::io_context& ioc) : emulation_(emulation), ioc_(ioc)
+    GameboyUI(Emulation& emulation) : emulation_(emulation)
     {
         SDL_Init(SDL_INIT_VIDEO);
 
@@ -60,7 +59,11 @@ class GameboyUI
 
     void ui_update()
     {
-        update_debug_window();
+        const auto& ppu_context = emulation_.gameboy_cpu.memory().ppu().context();
+        if (prev_frame_ != ppu_context.current_frame) {
+            update_debug_window();
+        }
+        prev_frame_ = ppu_context.current_frame;
     }
 
     void wait_for_events()
@@ -164,7 +167,8 @@ class GameboyUI
     SDL_Texture* debug_texture_;
 
     Emulation& emulation_;
-    boost::asio::io_context& ioc_;
+
+    uint32_t prev_frame_{0};
 
     static constexpr uint32_t SCALE{4};
     static constexpr uint32_t GRAY_COLOR{0xFF111111};

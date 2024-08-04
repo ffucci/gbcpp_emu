@@ -1,6 +1,7 @@
-#include "cpu/cpu.h"
 #include <cstdint>
 #include <stop_token>
+
+#include "cpu/cpu.h"
 #include "cpu/cpucontext.h"
 #include "cpu/instructions.h"
 #include "cpu/utils.h"
@@ -17,9 +18,6 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
         auto& regs = context_.registers;
         context_.fetched_data = memory_.read(regs.pc);
         update_cycles(1, context_, memory_);
-
-        // auto& logger = logger::Logger::instance();
-        // logger.log("Fetched data... {:02X}", context_.fetched_data);
         regs.pc++;
         return;
     };
@@ -180,7 +178,6 @@ auto CPU::fetch_data(const Instruction& instruction) -> void
             update_cycles(1, context_, memory_);
 
             uint16_t address = lo | (hi << 8);
-            std::cout << std::format("address: {:04X}", address) << std::endl;
             regs.pc += 2;
 
             context_.fetched_data = memory_.read(address);
@@ -236,13 +233,15 @@ void CPU::step()
     context_.instruction = fetch_instruction();
     update_cycles(1, context_, memory_);
     fetch_data(context_.instruction);
-    auto& logger = logger::Logger::instance();
 
-    logger.log(
-        "{:08X} - {:04X}: {:12} ({:02X} {:02X} {:02X}) A: {:02X} F: {} BC: {:02X}{:02X} DE: {:02X}{:02X} "
-        "HL: {:02X}{:02X}",
-        context_.ticks, pc, decode_instruction(context_, memory_), context_.current_opcode, memory_.read(pc + 1),
-        memory_.read(pc + 2), regs.a, regs.get_flags_string(), regs.b, regs.c, regs.d, regs.e, regs.h, regs.l);
+    if constexpr (CPU_DEBUG) {
+        auto& logger = logger::Logger::instance();
+        logger.log(
+            "{:08X} - {:04X}: {:12} ({:02X} {:02X} {:02X}) A: {:02X} F: {} BC: {:02X}{:02X} DE: {:02X}{:02X} "
+            "HL: {:02X}{:02X}",
+            context_.ticks, pc, decode_instruction(context_, memory_), context_.current_opcode, memory_.read(pc + 1),
+            memory_.read(pc + 2), regs.a, regs.get_flags_string(), regs.b, regs.c, regs.d, regs.e, regs.h, regs.l);
+    }
 
     if (context_.instruction.type == InstructionType::NONE) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
