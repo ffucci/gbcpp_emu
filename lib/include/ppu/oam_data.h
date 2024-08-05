@@ -13,6 +13,6 @@ struct OAMEntry
     unsigned f_dmg_palette : 1;
     unsigned f_x_flip : 1;
     unsigned f_y_flip : 1;
-    unsigned f_priority : 1;
+    unsigned f_background_priority : 1;
 };
 }  // namespace gameboy::ppu

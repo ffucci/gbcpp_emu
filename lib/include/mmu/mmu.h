@@ -56,7 +56,8 @@ class MMU
 
     void ppu_tick(cpu::CPUContext& context)
     {
-        ppu_.tick(lcd_, context, [this](uint16_t address) -> uint8_t { return read(address); });
+        auto read_handler = [this](uint16_t address) -> uint8_t { return read(address); };
+        ppu_.tick(lcd_, context, read_handler);
     }
 
     auto dma() -> mmu::DMA&

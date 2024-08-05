@@ -22,15 +22,63 @@ class PPUFSM
     {
     }
 
-    void handle(lcd::LCD& lcd, cpu::CPUContext& cpu_context, std::function<uint8_t(uint16_t)>&& on_read)
+    void handle(lcd::LCD& lcd, cpu::CPUContext& cpu_context, const std::function<uint8_t(uint16_t)>& on_read)
     {
         const auto mode = lcd.context().lcds_mode();
-        [[maybe_unused]] PPUHandler handler = ppu_handlers_.at(std::to_underlying(mode));
-        std::invoke(handler, this, lcd, cpu_context, std::move(on_read));  // (this->*handler)(lcd, cpu_context);
+        PPUHandler handler = ppu_handlers_.at(std::to_underlying(mode));
+        std::invoke(handler, this, lcd, cpu_context, on_read);  // (this->*handler)(lcd, cpu_context);
     }
 
    private:
-    void mode_hblank(lcd::LCD& lcd, cpu::CPUContext& cpu_context, std::function<uint8_t(uint16_t)>&& on_read)
+    void mode_vblank(lcd::LCD& lcd, cpu::CPUContext& cpu_context, const std::function<uint8_t(uint16_t)>&)
+    {
+        auto& context = lcd.context();
+        if (ppu_context_.line_ticks >= TICKS_PER_LINE) {
+            context.inc_ly(cpu_context);
+            if (context.ly >= LINES_PER_FRAME) {
+                context.set_lcds_mode(lcd::LCDMode::Oam);
+                context.ly = 0;  // When the frame is over we can cleanup
+            }
+
+            ppu_context_.line_ticks = 0;
+        }
+    }
+
+    void mode_oam(lcd::LCD& lcd, cpu::CPUContext& cpu_context, const std::function<uint8_t(uint16_t)>&)
+    {
+        if (ppu_context_.line_ticks >= 80) {
+            lcd.context().set_lcds_mode(lcd::LCDMode::Transfer);
+
+            auto& pq_context = ppu_context_.pfc;
+            pq_context.fetch_state = PPUFetchState::Tile;
+            pq_context.line_x = 0;
+            pq_context.fetch_x = 0;
+            pq_context.pushed_x = 0;
+            pq_context.fetch_x = 0;
+        }
+
+        if (ppu_context_.line_ticks == 1) {
+            ppu_context_.oam_freelist.reset();
+            ppu_context_.load_line_sprites(lcd);
+        }
+    }
+
+    void mode_transfer(lcd::LCD& lcd, cpu::CPUContext& cpu_context, const std::function<uint8_t(uint16_t)>& on_read)
+    {
+        auto& context = lcd.context();
+        ppu_context_.process(lcd, on_read);
+        if (ppu_context_.pfc.pushed_x >= PPUContext::XRES) {
+            // fifo reset
+            ppu_context_.fifo_reset();
+            context.set_lcds_mode(lcd::LCDMode::HBlank);
+
+            if (lcd.context().status_interrupt_mode(lcd::LCDStat::HBlank)) {
+                cpu_context.request_interrupt(cpu::InterruptType::LCD_STAT);
+            }
+        }
+    }
+
+    void mode_hblank(lcd::LCD& lcd, cpu::CPUContext& cpu_context, const std::function<uint8_t(uint16_t)>& on_read)
     {
         auto& lcd_context = lcd.context();
 
@@ -73,50 +121,7 @@ class PPUFSM
         }
     }
 
-    void mode_vblank(lcd::LCD& lcd, cpu::CPUContext& cpu_context, std::function<uint8_t(uint16_t)>&&)
-    {
-        auto& context = lcd.context();
-        if (ppu_context_.line_ticks >= TICKS_PER_LINE) {
-            context.inc_ly(cpu_context);
-            if (context.ly >= LINES_PER_FRAME) {
-                context.set_lcds_mode(lcd::LCDMode::Oam);
-                context.ly = 0;  // When the frame is over we can cleanup
-            }
-
-            ppu_context_.line_ticks = 0;
-        }
-    }
-
-    void mode_oam(lcd::LCD& lcd, cpu::CPUContext& cpu_context, std::function<uint8_t(uint16_t)>&&)
-    {
-        if (ppu_context_.line_ticks >= 80) {
-            lcd.context().set_lcds_mode(lcd::LCDMode::Transfer);
-
-            auto& pq_context = ppu_context_.pfc;
-            pq_context.fetch_state = PPUFetchState::Tile;
-            pq_context.line_x = 0;
-            pq_context.fetch_x = 0;
-            pq_context.pushed_x = 0;
-            pq_context.fetch_x = 0;
-        }
-    }
-
-    void mode_transfer(lcd::LCD& lcd, cpu::CPUContext& cpu_context, std::function<uint8_t(uint16_t)>&& on_read)
-    {
-        auto& context = lcd.context();
-        ppu_context_.process(lcd, std::move(on_read));
-        if (ppu_context_.pfc.pushed_x >= PPUContext::XRES) {
-            // fifo reset
-            ppu_context_.reset();
-            context.set_lcds_mode(lcd::LCDMode::HBlank);
-
-            if (lcd.context().status_interrupt_mode(lcd::LCDStat::HBlank)) {
-                cpu_context.request_interrupt(cpu::InterruptType::LCD_STAT);
-            }
-        }
-    }
-
-    using PPUHandler = void (PPUFSM::*)(lcd::LCD&, cpu::CPUContext&, std::function<uint8_t(uint16_t)>&&);
+    using PPUHandler = void (PPUFSM::*)(lcd::LCD&, cpu::CPUContext&, const std::function<uint8_t(uint16_t)>&);
 
     static constexpr uint16_t TICKS_PER_LINE{456};
     static constexpr uint16_t LINES_PER_FRAME{154};

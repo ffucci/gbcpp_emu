@@ -26,7 +26,7 @@ static constexpr std::string_view registers_name[] = {"<NONE>", "A",  "F",  "B",
 
 constexpr auto get_reg_name(RegisterType reg) -> std::string_view
 {
-    assert(index <= sizeof(registers_name));
+    assert(std::to_underlying(reg) <= sizeof(registers_name));
 
     return registers_name[std::to_underlying(reg)];
 }

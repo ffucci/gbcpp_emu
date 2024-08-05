@@ -7,6 +7,7 @@
 #include <iostream>
 #include "cpu/cpucontext.h"
 #include "cpu/interrupt_type.h"
+#include "utils/logger.h"
 
 namespace gameboy::lcd {
 
@@ -57,11 +58,11 @@ struct LCDContext
 
     inline bool bgw_enable() const noexcept
     {
-        return lcdc & 0x1;
+        return lcdc & (1 << 0);
     }
     inline bool obj_enable() const noexcept
     {
-        return lcdc & 0x2;
+        return (lcdc & (1 << 1));
     }
 
     inline uint8_t obj_height() const noexcept
@@ -101,7 +102,7 @@ struct LCDContext
 
     inline void set_lcds_mode(LCDMode mode) noexcept
     {
-        lcds &= 0XFC;
+        lcds &= ~0b11;
         lcds |= std::to_underlying(mode);
     }
 
@@ -161,8 +162,10 @@ class LCD
     template <std::regular_invocable<uint8_t> DMACallback>
     inline void write(uint16_t address, uint8_t value, DMACallback&& callback)
     {
-        uint8_t offset = (address - LCD_BASE_ADDRESS);
-        auto* ctx_ptr = std::bit_cast<uint8_t*>(&lcd_context_);
+        auto& logger = logger::Logger::instance();
+        logger.log("address {:04X} value {:02X}", address, value);
+        uint8_t offset = (address - LCD_BASE_ADDRESS) & 0xFF;
+        uint8_t* ctx_ptr = std::bit_cast<uint8_t*>(&lcd_context_);
         ctx_ptr[offset] = value;
 
         if (offset == 0x6) {
@@ -180,7 +183,7 @@ class LCD
         }
 
         if (address == OBJ_PALETTE1_ADDR) {
-            update_palette(value & 0b11111100, 1);
+            update_palette(value & 0b11111100, 2);
             return;
         }
     }
@@ -188,6 +191,8 @@ class LCD
     auto read(uint16_t address) const noexcept -> uint8_t
     {
         uint8_t offset = (address - LCD_BASE_ADDRESS) & 0xFF;
+        auto& logger = logger::Logger::instance();
+        logger.log("read -> address {:04X} value {:02X}", address, std::bit_cast<uint8_t*>(&lcd_context_)[offset]);
         return std::bit_cast<uint8_t*>(&lcd_context_)[offset];
     }
 
