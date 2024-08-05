@@ -27,8 +27,8 @@ class Debug
     void print()
     {
         if (debug_ring_[0]) {
-            auto& logger = logger::Logger::instance();
-            logger.log("DBG: {}", debug_ring_);
+            // auto& logger = logger::Logger::instance();
+            // logger.log("DBG: {}", debug_ring_);
         }
     }
     std::string debug_ring_;

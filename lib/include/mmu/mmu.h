@@ -31,7 +31,7 @@ namespace gameboy::memory {
 // 0xFF00 - 0xFF7F : I/O Registers
 // 0xFF80 - 0xFFFE : Zero Page
 
-class MMU : public std::enable_shared_from_this<MMU>
+class MMU
 {
    public:
     MMU() = delete;
@@ -56,7 +56,7 @@ class MMU : public std::enable_shared_from_this<MMU>
 
     void ppu_tick(cpu::CPUContext& context)
     {
-        ppu_.tick(lcd_, context);
+        ppu_.tick(lcd_, context, [this](uint16_t address) -> uint8_t { return read(address); });
     }
 
     auto dma() -> mmu::DMA&

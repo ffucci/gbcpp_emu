@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+
 #include "cpu/cpucontext.h"
 #include "io/lcd.h"
 #include "ppu/ppu_context.h"
@@ -51,10 +52,10 @@ class PPU
         }
     }
 
-    void tick(lcd::LCD& lcd, cpu::CPUContext& context)
+    void tick(lcd::LCD& lcd, cpu::CPUContext& context, std::function<uint8_t(uint16_t)>&& on_read)
     {
         ppu_context_.line_ticks++;
-        ppu_fsm_.handle(lcd, context);
+        ppu_fsm_.handle(lcd, context, std::move(on_read));
     }
 
     auto context() const -> const PPUContext&

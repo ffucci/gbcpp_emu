@@ -66,22 +66,17 @@ struct LCDContext
 
     inline uint8_t obj_height() const noexcept
     {
-        return lcdc & 0x2 ? 16 : 8;
-    }
-
-    inline uint8_t bg_map_area() const noexcept
-    {
         return lcdc & (1 << 2) ? 16 : 8;
     }
 
-    inline uint16_t bgw_map_area() const noexcept
+    inline uint16_t bg_map_area() const noexcept
     {
-        return lcdc & (1 << 3) ? 0x9C00 : 0x9800;
+        return (lcdc & (1 << 3)) ? 0x9C00 : 0x9800;
     }
 
     inline uint16_t bgw_data_area() const noexcept
     {
-        return lcdc & (1 << 4) ? 0x8000 : 0x8800;
+        return (lcdc & (1 << 4)) ? 0x8000 : 0x8800;
     }
 
     inline bool win_enable() const noexcept

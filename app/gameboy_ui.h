@@ -4,9 +4,12 @@
 #include <SDL_rect.h>
 #include <SDL_render.h>
 #include <SDL_video.h>
+#include <SDL2/SDL_ttf.h>
+
 #include <sys/types.h>
 #include <cstdint>
 #include "cpu/cpu.h"
+#include "ppu/ppu_context.h"
 
 namespace gameboy::ui {
 struct Emulation
@@ -16,8 +19,8 @@ struct Emulation
     }
 
     cpu::CPU& gameboy_cpu;
-    int width{400};
-    int height{400};
+    int width{1024};
+    int height{768};
 
     bool stop{false};
 };
@@ -30,12 +33,15 @@ class GameboyUI
     GameboyUI(Emulation& emulation) : emulation_(emulation)
     {
         SDL_Init(SDL_INIT_VIDEO);
+        TTF_Init();
 
         window_ = SDL_CreateWindow(
             "gbemu_cpp", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, emulation_.width, emulation_.height,
             SDL_WINDOW_OPENGL);
 
         renderer_ = SDL_CreateRenderer(window_, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        screen_ = SDL_CreateRGBSurface(
+            0, emulation_.width, emulation.height, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 
         SDL_CreateWindowAndRenderer(
             16 * 8 * GameboyUI::SCALE, 32 * 8 * GameboyUI::SCALE, 0, &debug_window_, &debug_renderer_);
@@ -61,6 +67,7 @@ class GameboyUI
     {
         const auto& ppu_context = emulation_.gameboy_cpu.memory().ppu().context();
         if (prev_frame_ != ppu_context.current_frame) {
+            update_main();
             update_debug_window();
         }
         prev_frame_ = ppu_context.current_frame;
@@ -92,6 +99,31 @@ class GameboyUI
     void delay(uint32_t ms)
     {
         SDL_Delay(ms);
+    }
+
+    void update_main()
+    {
+        SDL_Rect rc;
+        rc.x = rc.y = 0;
+        rc.w = rc.h = 2048;
+
+        auto& video_buffer = emulation_.gameboy_cpu.memory().ppu().context().video_buffer;
+
+        for (int line_num = 0; line_num < ppu::PPUContext::YRES; line_num++) {
+            for (int x = 0; x < ppu::PPUContext::XRES; x++) {
+                rc.x = x * SCALE;
+                rc.y = line_num * SCALE;
+                rc.w = SCALE;
+                rc.h = SCALE;
+
+                SDL_FillRect(screen_, &rc, video_buffer[x + (line_num * ppu::PPUContext::XRES)]);
+            }
+        }
+
+        SDL_UpdateTexture(texture_, NULL, screen_->pixels, screen_->pitch);
+        SDL_RenderClear(renderer_);
+        SDL_RenderCopy(renderer_, texture_, NULL, NULL);
+        SDL_RenderPresent(renderer_);
     }
 
     void update_debug_window()
@@ -158,6 +190,7 @@ class GameboyUI
     SDL_Window* window_;
     SDL_Window* debug_window_;
 
+    SDL_Surface* screen_;
     SDL_Surface* debug_screen_;
 
     SDL_Renderer* renderer_;
