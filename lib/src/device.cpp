@@ -4,6 +4,10 @@ namespace gameboy::io {
 
 uint8_t Device::read(uint16_t address) const noexcept
 {
+    if (address == 0xFF00) {
+        return gamepad_.get_output();
+    }
+
     if (address == 0xFF01) {
         return serial_data_[0];
     }
@@ -28,6 +32,11 @@ uint8_t Device::read(uint16_t address) const noexcept
 void Device::write(uint16_t address, uint8_t value)
 {
     auto& logger = logger::Logger::instance();
+
+    if (address == 0xFF00) {
+        gamepad_.set_selection(value);
+        return;
+    }
 
     if (address == 0xFF01) {
         serial_data_[0] = value;

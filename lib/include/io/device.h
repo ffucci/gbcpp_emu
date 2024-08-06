@@ -3,6 +3,7 @@
 #include <cstdint>
 #include "cpu/cpucontext.h"
 #include "cpu/timer.h"
+#include "io/gamepad.h"
 #include "utils/logger.h"
 
 namespace gameboy::io {
@@ -21,9 +22,8 @@ class Device
 
    private:
     std::array<uint8_t, 2> serial_data_{};
-
     cpu::CPUContext& context_;
 
-    mutable uint8_t ly;  // Just for now
+    GamePad gamepad_;
 };
 }  // namespace gameboy::io
