@@ -33,9 +33,8 @@ struct LCDContext
     uint8_t lcds{};  // LCD status register
     uint8_t scroll_y{};
     uint8_t scroll_x{};
-    uint8_t ly{};
-    uint8_t lx;
-    uint8_t ly_compare{};
+    uint8_t ly{0};
+    uint8_t ly_compare{0};
     uint8_t dma;
     uint8_t bg_palette{};
     uint8_t obj_palette[2];
@@ -118,7 +117,7 @@ struct LCDContext
 
     inline bool status_interrupt_mode(LCDStat src) const noexcept
     {
-        return lcds & std::to_underlying(src);
+        return (lcds & std::to_underlying(src)) != 0;
     }
 
     inline void inc_ly(cpu::CPUContext& context)
@@ -126,6 +125,7 @@ struct LCDContext
         ly++;
         if (ly == ly_compare) {
             status_lyc_set(1);
+
             if (status_interrupt_mode(LCDStat::Lyc)) {
                 context.request_interrupt(cpu::InterruptType::LCD_STAT);
             }
@@ -192,7 +192,7 @@ class LCD
     {
         uint8_t offset = (address - LCD_BASE_ADDRESS) & 0xFF;
         auto& logger = logger::Logger::instance();
-        logger.log("read -> address {:04X} value {:02X}", address, std::bit_cast<uint8_t*>(&lcd_context_)[offset]);
+        logger.log("read -> address {:04X}, value {:02X}", address, std::bit_cast<uint8_t*>(&lcd_context_)[offset]);
         return std::bit_cast<uint8_t*>(&lcd_context_)[offset];
     }
 

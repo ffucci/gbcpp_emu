@@ -77,8 +77,8 @@ class MMU
             return;
         }
         const auto result_value = read((dma_.dma_context_.value * 0x100) + dma_.dma_context_.bt);
-        ppu_.write<ppu::PPUWriteType::OAM>(dma_.dma_context_.bt++, result_value);
-
+        ppu_.write<ppu::PPUWriteType::OAM>(dma_.dma_context_.bt, result_value);
+        dma_.dma_context_.bt++;
         dma_.dma_context_.active = dma_.dma_context_.bt < 0xA0;  // up until 9F
     }
 

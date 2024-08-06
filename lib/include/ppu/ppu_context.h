@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sys/types.h>
 #include <array>
 #include <cstdint>
 #include <functional>
@@ -54,8 +55,8 @@ struct PPUContext
     static constexpr uint16_t YRES{144};
     static constexpr uint16_t XRES{160};
 
-    std::array<OAMEntry, OAM_RAM_SIZE> oam_ram{};
-    std::array<std::byte, VRAM_SIZE> vram{};
+    std::array<OAMEntry, OAM_RAM_SIZE> oam_ram = {};
+    std::array<std::byte, VRAM_SIZE> vram = {};
     OAMFreeList<10> oam_freelist{};
 
     uint32_t current_frame{};
@@ -89,7 +90,8 @@ struct PPUContext
     {
         const auto& context = lcd.context();
         uint8_t sprite_height = context.obj_height();
-        int curr_y = context.ly;
+
+        uint8_t curr_y = context.ly;
         oam_freelist.clear();
         for (int i = 0; i < OAM_RAM_SIZE; ++i) {
             auto entry = oam_ram[i];
@@ -102,9 +104,9 @@ struct PPUContext
                 break;
             }
 
-            if ((entry.y <= (curr_y + 16)) && ((entry.y + sprite_height) > (curr_y + 16))) {
+            if (entry.y <= curr_y + 16 && entry.y + sprite_height > curr_y + 16) {
                 // insert into the freelist
-                oam_freelist.insert(entry);
+                auto stop = oam_freelist.insert(entry);
             }
         }
     }
@@ -130,11 +132,10 @@ struct PPUContext
     {
         int ly = lcd_context.ly;
         uint8_t sprite_height = lcd_context.obj_height();
-        // std::cout << "Sprite Height: " << static_cast<int>(sprite_height) << std::endl;
         auto& fetched_entries = oam_freelist.fetched_entries_ref();
         for (int i = 0; i < oam_freelist.fetched_entry_count(); ++i) {
             // 16 is the y offset of 16 bytes
-            auto ty = ((ly + 16) - fetched_entries[i].y) * 2;
+            uint8_t ty = 2 * ((ly + 16) - fetched_entries[i].y);
             if (fetched_entries[i].f_y_flip) {
                 ty = ((sprite_height * 2) - 2) - ty;  // flip on the y-axis
             }
@@ -151,8 +152,6 @@ struct PPUContext
 
     void pipeline_fetch(lcd::LCD& lcd, const std::function<uint8_t(uint16_t)>& read)
     {
-        // auto& logger = logger::Logger::instance();
-        // logger.log("lcdc {:04X}", lcd.context().lcdc);
         std::invoke(handlers_[std::to_underlying(pfc.fetch_state)], this, lcd, read);
     }
 
@@ -161,7 +160,7 @@ struct PPUContext
         auto& context = lcd.context();
         oam_freelist.fetched_entry_count() = 0;
         if (context.bgw_enable()) {
-            auto delta_y = (pfc.map_y / 8) * 32;
+            uint16_t delta_y = (pfc.map_y / 8) * 32;
             pfc.bgw_fetch_data[0] = read(context.bg_map_area() + (pfc.map_x / 8) + delta_y);
 
             if (context.bgw_data_area() == 0x8800) {
@@ -169,7 +168,7 @@ struct PPUContext
             }
         }
 
-        if (context.obj_enable()) {
+        if (context.obj_enable() && oam_freelist.has_freelist_head()) {
             oam_freelist.load_sprite_tile(pfc.fetch_x, context.scroll_x);
         }
 
@@ -201,10 +200,12 @@ struct PPUContext
     uint32_t fetch_sprite_pixels(int bit, uint32_t color, uint8_t bg_color, const lcd::LCDContext& lcd_context)
     {
         auto& fetched_entries = oam_freelist.fetched_entries_ref();
+        auto& logger = logger::Logger::instance();
+
         for (int i = 0; i < oam_freelist.fetched_entry_count(); ++i) {
             int sprite_x = (fetched_entries[i].x - 8) + (lcd_context.scroll_x % 8);
 
-            if (pfc.fifo_x > (sprite_x + 8)) {
+            if (sprite_x + 8 < pfc.fifo_x) {
                 // passed the pixel point
                 continue;
             }
@@ -222,10 +223,8 @@ struct PPUContext
 
             uint8_t lo = !!(pfc.fetch_entry_data[2 * i] & (1 << bit));
             uint8_t hi = !!(pfc.fetch_entry_data[(2 * i) + 1] & (1 << bit)) << 1;
-
+            auto res = hi | lo;
             bool background_prio = fetched_entries[i].f_background_priority;
-            auto res = (hi | lo);
-
             if (!res) {
                 // transparent
                 continue;
@@ -234,7 +233,7 @@ struct PPUContext
             if (!(background_prio) || (bg_color == 0)) {
                 color = fetched_entries[i].f_dmg_palette ? lcd_context.sprite2_colors[res]
                                                          : lcd_context.sprite1_colors[res];
-                if (res) {
+                if (hi | lo) {
                     break;
                 }
             }

@@ -18,7 +18,7 @@ class PPUFSM
 {
    public:
     PPUFSM() = delete;
-    explicit PPUFSM(PPUContext& context) : ppu_context_(context)
+    explicit PPUFSM(PPUContext& context) : ppu_context_(context) /*  */
     {
     }
 
@@ -54,7 +54,7 @@ class PPUFSM
             pq_context.line_x = 0;
             pq_context.fetch_x = 0;
             pq_context.pushed_x = 0;
-            pq_context.fetch_x = 0;
+            pq_context.fifo_x = 0;
         }
 
         if (ppu_context_.line_ticks == 1) {

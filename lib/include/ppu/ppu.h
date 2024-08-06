@@ -19,7 +19,8 @@ class PPU
    public:
     PPU()
     {
-        ppu_context_.video_buffer.resize(PPUContext::XRES * PPUContext::YRES);
+        ppu_context_.pfc.fetch_state = PPUFetchState::Tile;
+        ppu_context_.video_buffer = std::vector<uint32_t>(PPUContext::XRES * PPUContext::YRES, 0);
     }
 
     template <PPUWriteType WriteType>
@@ -31,9 +32,9 @@ class PPU
             }
 
             return std::bit_cast<const uint8_t*>(ppu_context_.oam_ram.data())[address];
-        } else {
-            return std::bit_cast<const uint8_t*>(ppu_context_.vram.data())[address - 0x8000];
         }
+
+        return std::bit_cast<const uint8_t*>(ppu_context_.vram.data())[address - 0x8000];
     }
 
     template <PPUWriteType WriteType>
@@ -44,10 +45,10 @@ class PPU
                 address -= 0xFE00;
             }
 
-            auto* container = std::bit_cast<uint8_t*>(ppu_context_.oam_ram.data());
+            uint8_t* container = std::bit_cast<uint8_t*>(ppu_context_.oam_ram.data());
             container[address] = value;
         } else {
-            auto* container = std::bit_cast<uint8_t*>(ppu_context_.vram.data());
+            uint8_t* container = std::bit_cast<uint8_t*>(ppu_context_.vram.data());
             container[address - 0x8000] = value;
         }
     }

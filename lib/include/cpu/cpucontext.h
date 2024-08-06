@@ -43,7 +43,7 @@ inline void cpu_set_flag_late(uint8_t& flags, uint8_t zero, uint8_t n, uint8_t h
     flags |= (flags & ~bc) | (-(carry != 0xFF) & bc);
 }
 
-inline void cpu_set_flag(uint8_t& flags, int8_t zero, int8_t n, int8_t half, int8_t carry)
+inline void cpu_set_flag_old(uint8_t& flags, int8_t zero, int8_t n, int8_t half, int8_t carry)
 {
     const bool is_zero = (zero != 0);
     const bool is_n = (n != 0);
@@ -61,7 +61,7 @@ inline void cpu_set_flag(uint8_t& flags, int8_t zero, int8_t n, int8_t half, int
     flags ^= (carry != -1 ? -1 : 0) & ((-is_carry ^ flags) & mbc);
 }
 
-inline void cpu_set_flag_old(uint8_t& flags, int8_t z, int8_t n, int8_t h, int8_t c)
+inline void cpu_set_flag(uint8_t& flags, int8_t z, int8_t n, int8_t h, int8_t c)
 {
     if (z != -1) {
         BIT_SET(flags, 7, z);

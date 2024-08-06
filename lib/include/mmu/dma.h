@@ -9,7 +9,7 @@ namespace gameboy::mmu {
 
 struct DMAContext
 {
-    uint8_t active{true};
+    bool active{true};
     uint8_t bt{};
     uint8_t value{};
     uint8_t start_delay{2};
@@ -30,7 +30,7 @@ struct DMA
 
     inline bool transfering() const noexcept
     {
-        return dma_context_.active != 0;
+        return dma_context_.active;
     }
 
     DMAContext dma_context_;

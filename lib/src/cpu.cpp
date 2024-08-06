@@ -220,8 +220,6 @@ void CPU::run(std::stop_token token)
         if (context_.enabling_ime) {
             context_.master_interrupt_enabled = true;
         }
-
-        update_cycles(1, context_, memory_);
     }
 }
 

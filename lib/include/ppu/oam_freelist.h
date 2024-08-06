@@ -2,8 +2,11 @@
 
 #include <sys/types.h>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <iostream>
+
 #include "ppu/oam_data.h"
 
 namespace gameboy::ppu {
@@ -15,10 +18,10 @@ struct Node
     Node<Entry>* next{nullptr};
 };
 
-template <size_t SIZE>
+template <size_t SIZE, size_t FETCHED_ENTRY = 3>
 struct OAMFreeList
 {
-    void insert(const OAMEntry& e)
+    bool insert(const OAMEntry& e) noexcept
     {
         auto* node = &nodes_[number_of_sprite_lines++];
         node->entry = e;
@@ -26,7 +29,7 @@ struct OAMFreeList
         if (freelist_head_ == nullptr || freelist_head_->entry.x > node->entry.x) {
             node->next = freelist_head_;
             freelist_head_ = node;
-            return;
+            return true;
         }
 
         auto* le = freelist_head_;
@@ -46,6 +49,8 @@ struct OAMFreeList
             prev = le;
             le = le->next;
         }
+
+        return false;
     }
 
     auto sprite_lines() const noexcept -> uint8_t
@@ -62,18 +67,13 @@ struct OAMFreeList
     {
         auto* le = freelist_head_;
 
-        // const auto has_to_fetch = [fetch_x](int sprite_x) { return sprite_x >= fetch_x && sprite_x < (fetch_x + 8);
-        // };
+        const auto has_to_fetch = [fetch_x = fetch_x](int sprite_x) {
+            return sprite_x >= fetch_x && sprite_x < (fetch_x + 8);
+        };
 
         while (le) {
             int sprite_x = (le->entry.x - 8) + (scroll_x % 8);
-            // if (has_to_fetch(sprite_x) || has_to_fetch(sprite_x + 8)) {
-            //     fetched_entries[fetch_entry_count++] = le->entry;
-            // }
-
-            if ((sprite_x >= fetch_x && sprite_x < fetch_x + 8) ||
-                ((sprite_x + 8) >= fetch_x && (sprite_x + 8) < fetch_x + 8)) {
-                // need to add entry
+            if (has_to_fetch(sprite_x) || has_to_fetch(sprite_x + 8)) {
                 fetched_entries[fetch_entry_count++] = le->entry;
             }
 
@@ -90,7 +90,7 @@ struct OAMFreeList
         return fetch_entry_count;
     }
 
-    auto fetched_entries_ref() -> std::array<OAMEntry, 3>&
+    auto fetched_entries_ref() const noexcept -> const std::array<OAMEntry, FETCHED_ENTRY>&
     {
         return fetched_entries;
     }
@@ -113,7 +113,7 @@ struct OAMFreeList
     uint8_t number_of_sprite_lines{0};
 
     uint8_t fetch_entry_count{0};
-    std::array<OAMEntry, 3> fetched_entries{};
+    std::array<OAMEntry, FETCHED_ENTRY> fetched_entries{};
 };
 
 }  // namespace gameboy::ppu

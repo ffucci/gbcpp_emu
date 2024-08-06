@@ -326,6 +326,7 @@ void cb_handler(CPUContext& ctx, memory::MMU& memory)
 
     auto value = ctx.read_reg8(reg);
     update_cycles(1, ctx, memory);
+
     if (reg == RegisterType::HL) {
         update_cycles(2, ctx, memory);
         value = memory.read(ctx.read_reg(RegisterType::HL));
