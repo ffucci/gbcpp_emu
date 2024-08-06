@@ -34,10 +34,11 @@ class PPUFSM
     {
         auto& context = lcd.context();
         if (ppu_context_.line_ticks >= TICKS_PER_LINE) {
-            context.inc_ly(cpu_context);
+            context.inc_ly(ppu_context_.window_line, cpu_context);
             if (context.ly >= LINES_PER_FRAME) {
                 context.set_lcds_mode(lcd::LCDMode::Oam);
                 context.ly = 0;  // When the frame is over we can cleanup
+                ppu_context_.window_line = 0;
             }
 
             ppu_context_.line_ticks = 0;
@@ -50,11 +51,7 @@ class PPUFSM
             lcd.context().set_lcds_mode(lcd::LCDMode::Transfer);
 
             auto& pq_context = ppu_context_.pfc;
-            pq_context.fetch_state = PPUFetchState::Tile;
-            pq_context.line_x = 0;
-            pq_context.fetch_x = 0;
-            pq_context.pushed_x = 0;
-            pq_context.fifo_x = 0;
+            pq_context.line_reset();
         }
 
         if (ppu_context_.line_ticks == 1) {
@@ -83,7 +80,7 @@ class PPUFSM
         auto& lcd_context = lcd.context();
 
         if (ppu_context_.line_ticks >= TICKS_PER_LINE) {
-            lcd_context.inc_ly(cpu_context);
+            lcd_context.inc_ly(ppu_context_.window_line, cpu_context);
             if (lcd_context.ly >= PPUContext::YRES) {
                 lcd_context.set_lcds_mode(lcd::LCDMode::VBlank);
                 cpu_context.request_interrupt(cpu::InterruptType::VBLANK);

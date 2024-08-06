@@ -46,6 +46,15 @@ struct PixelQueueContext
 
     static constexpr uint8_t OAM_DATA_SIZE{6};
     uint8_t fetch_entry_data[OAM_DATA_SIZE];
+
+    inline void line_reset()
+    {
+        fetch_state = PPUFetchState::Tile;
+        line_x = 0;
+        fetch_x = 0;
+        pushed_x = 0;
+        fifo_x = 0;
+    }
 };
 
 struct PPUContext
@@ -64,6 +73,8 @@ struct PPUContext
 
     std::vector<uint32_t> video_buffer{};
     PixelQueueContext pfc;
+
+    uint8_t window_line;
 
     void process(lcd::LCD& lcd, const std::function<uint8_t(uint16_t)>& on_read)
     {
@@ -155,6 +166,26 @@ struct PPUContext
         std::invoke(handlers_[std::to_underlying(pfc.fetch_state)], this, lcd, read);
     }
 
+    // ############## TILE HANDLER
+    void load_window_tile(const lcd::LCDContext& lcd_ctx, const std::function<uint8_t(uint16_t)>& read)
+    {
+        if (!lcd_ctx.is_window_visible()) {
+            return;
+        }
+        auto x_to_check = pfc.fetch_x + 7;
+        if (x_to_check >= lcd_ctx.win_x && x_to_check < lcd_ctx.win_x + YRES + 14) {
+            if (lcd_ctx.ly >= lcd_ctx.win_y && lcd_ctx.ly < lcd_ctx.win_y + XRES) {
+                auto w_tile_y = window_line / 8;
+                pfc.bgw_fetch_data[0] =
+                    read(lcd_ctx.win_map_area() + (pfc.fetch_x + 7 - lcd_ctx.win_x) / 8 + (32 * w_tile_y));
+
+                if (lcd_ctx.bgw_data_area() == 0x8800) {
+                    pfc.bgw_fetch_data[0] += 128;
+                }
+            }
+        }
+    }
+
     void tile_handler(lcd::LCD& lcd, const std::function<uint8_t(uint16_t)>& read)
     {
         auto& context = lcd.context();
@@ -166,6 +197,8 @@ struct PPUContext
             if (context.bgw_data_area() == 0x8800) {
                 pfc.bgw_fetch_data[0] += 128;
             }
+
+            load_window_tile(context, read);
         }
 
         if (context.obj_enable() && oam_freelist.has_freelist_head()) {

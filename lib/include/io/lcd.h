@@ -120,9 +120,22 @@ struct LCDContext
         return (lcds & std::to_underlying(src)) != 0;
     }
 
-    inline void inc_ly(cpu::CPUContext& context)
+    static constexpr uint16_t YRES{144};
+
+    inline bool is_window_visible() const noexcept
     {
+        return win_enable() && win_x >= 0 && win_x <= 166 && win_y >= 0 && win_y < YRES;
+    }
+
+    inline void inc_ly(uint8_t& window_line, cpu::CPUContext& context)
+    {
+        // Check if we are in the window range
+        if (is_window_visible() && (ly >= win_y && ly < (win_y + YRES))) {
+            window_line++;
+        }
+
         ly++;
+
         if (ly == ly_compare) {
             status_lyc_set(1);
 
