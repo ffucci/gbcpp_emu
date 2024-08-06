@@ -7,6 +7,7 @@
 #include <thread>
 #include "cartridge/cartridge.h"
 #include "cpu/cpucontext.h"
+#include "io/gamepad.h"
 #include "io/lcd.h"
 #include "mmu/dma.h"
 #include "mmu/ram.h"
@@ -80,6 +81,11 @@ class MMU
         ppu_.write<ppu::PPUWriteType::OAM>(dma_.dma_context_.bt, result_value);
         dma_.dma_context_.bt++;
         dma_.dma_context_.active = dma_.dma_context_.bt < 0xA0;  // up until 9F
+    }
+
+    auto gamepad() -> io::GamePad&
+    {
+        return device_.gamepad();
     }
 
     ~MMU() = default;

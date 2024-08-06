@@ -35,7 +35,7 @@ class GamePad
         return ctx_.direction_select;
     }
 
-    auto state() const noexcept -> const GamePadState&
+    auto state() noexcept -> GamePadState&
     {
         return ctx_.state;
     }

@@ -1,8 +1,12 @@
 #pragma once
 
 #include <SDL.h>
+#include <SDL_events.h>
+#include <SDL_keyboard.h>
+#include <SDL_keycode.h>
 #include <SDL_rect.h>
 #include <SDL_render.h>
+#include <SDL_stdinc.h>
 #include <SDL_video.h>
 #include <SDL2/SDL_ttf.h>
 
@@ -77,9 +81,13 @@ class GameboyUI
     {
         SDL_Event e;
         while (SDL_PollEvent(&e) > 0) {
-            // TODO SDL_UpdateWindowSurface(sdlWindow);
-            // TODO SDL_UpdateWindowSurface(sdlTraceWindow);
-            // TODO SDL_UpdateWindowSurface(sdlDebugWindow);
+            if (e.type == SDL_KEYDOWN) {
+                on_key(true, e.key.keysym);
+            }
+
+            if (e.type == SDL_KEYUP) {
+                on_key(false, e.key.keysym);
+            }
 
             if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) {
                 emulation_.stop = true;
@@ -99,6 +107,52 @@ class GameboyUI
     void delay(uint32_t ms)
     {
         SDL_Delay(ms);
+    }
+
+    void on_key(bool pressed, SDL_Keysym key)
+    {
+        auto& gamepad = emulation_.gameboy_cpu.memory().gamepad();
+        switch (key.sym) {
+            case SDLK_z: {
+                gamepad.state().b = pressed;
+                break;
+            }
+
+            case SDLK_x: {
+                gamepad.state().a = pressed;
+                break;
+            }
+
+            case SDLK_k: {
+                gamepad.state().start = pressed;
+                break;
+            }
+
+            case SDLK_RETURN: {
+                gamepad.state().select = pressed;
+                break;
+            }
+
+            case SDLK_UP: {
+                gamepad.state().up = pressed;
+                break;
+            }
+
+            case SDLK_DOWN: {
+                gamepad.state().down = pressed;
+                break;
+            }
+
+            case SDLK_LEFT: {
+                gamepad.state().left = pressed;
+                break;
+            }
+
+            case SDLK_RIGHT: {
+                gamepad.state().right = pressed;
+                break;
+            }
+        }
     }
 
     void update_main()

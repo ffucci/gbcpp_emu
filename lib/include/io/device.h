@@ -20,6 +20,11 @@ class Device
 
     void write(uint16_t address, uint8_t value);
 
+    auto gamepad() -> GamePad&
+    {
+        return gamepad_;
+    }
+
    private:
     std::array<uint8_t, 2> serial_data_{};
     cpu::CPUContext& context_;

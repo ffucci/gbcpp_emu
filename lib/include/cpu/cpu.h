@@ -150,7 +150,7 @@ class CPU
 
     void run(std::stop_token token);
 
-    auto memory() -> const memory::MMU&
+    auto memory() -> memory::MMU&
     {
         return memory_;
     }
