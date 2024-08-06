@@ -54,11 +54,17 @@ class GamePad
             // if start is pressed
             if (ctx_.state.start) {
                 output &= ~(1 << 3);
-            } else if (ctx_.state.select) {
+            }
+
+            if (ctx_.state.select) {
                 output &= ~(1 << 2);
-            } else if (ctx_.state.a) {
+            }
+
+            if (ctx_.state.a) {
                 output &= ~(1 << 1);
-            } else if (ctx_.state.b) {
+            }
+
+            if (ctx_.state.b) {
                 output &= ~(1 << 0);
             }
         }
@@ -68,11 +74,17 @@ class GamePad
             // if start is pressed
             if (ctx_.state.left) {
                 output &= ~(1 << 1);
-            } else if (ctx_.state.right) {
+            }
+
+            if (ctx_.state.right) {
                 output &= ~(1 << 0);
-            } else if (ctx_.state.up) {
+            }
+
+            if (ctx_.state.up) {
                 output &= ~(1 << 2);
-            } else if (ctx_.state.down) {
+            }
+
+            if (ctx_.state.down) {
                 output &= ~(1 << 3);
             }
         }
