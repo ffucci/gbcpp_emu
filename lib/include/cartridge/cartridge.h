@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <span>
 #include <utility>
@@ -100,13 +101,10 @@ class Cartridge
 
     auto read(uint16_t address) -> uint8_t
     {
-        if (address < ROM_BASE_ADDRESS) {
+        if (!is_mbc1() || address < ROM_BASE_ADDRESS) {
             return rom_data_[address];
         }
 
-        if (!is_mbc1()) {
-            return 0xFF;
-        }
         // A000 - BFFF
         if ((address & 0xE000) == 0xA000) {
             if (!ram_enabled) {
@@ -127,7 +125,6 @@ class Cartridge
     {
         // ONLY MBC1
         if (!is_mbc1()) {
-            exit(-1);
             return;
         }
 
@@ -140,6 +137,7 @@ class Cartridge
         if (masked_address == 0x2000) {
             value = (value == 0) ? 1 : value;
 
+            value &= 0b11111;
             rom_bank_value = value;
             // Jump to the rom bank x
             rom_bank_x = rom_data_.data() + (ROM_BASE_ADDRESS * rom_bank_value);
@@ -150,6 +148,9 @@ class Cartridge
             ram_bank_value = value & 0b11;
 
             if (ram_banking) {
+                if (need_save) {
+                    battery_save();
+                }
                 ram_bank = ram_banks[ram_bank_value].data();
             }
         }
