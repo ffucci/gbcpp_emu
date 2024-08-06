@@ -130,7 +130,6 @@ auto MMU::write(uint16_t address, uint8_t value) -> void
     }
 
     if (address == 0xFFFF) {
-        logger.log("SET ENABLE {:04X} - {:04X}", address, value);
         int_enable_register_ = value;
         return;
     }

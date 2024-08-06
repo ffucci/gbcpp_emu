@@ -88,7 +88,8 @@ class Cartridge
     {
         rom_data_ = gameboy::utils::read_rom(filename_);
         header_ = gameboy::cartridge::from_rom(rom_data_);
-
+        setup_banks();
+        battery = has_battery();
         if (has_battery()) {
             battery_load();
         }
@@ -197,18 +198,20 @@ class Cartridge
 
     void setup_banks()
     {
-        for (size_t i = 0; i < NUMBER_RAM_BANKS; ++i) {
+        for (uint8_t i = 0; i < NUMBER_RAM_BANKS; ++i) {
             // 2 means 1 bank
             auto ram_size = header_.ram_size;
+
             bool check_for_ram = (ram_size == 2 && i == 0) || (ram_size == 3 && i < 4) || (ram_size == 4 && i < 16) ||
                                  (ram_size == 5 && i < 8);
             if (check_for_ram) {
-                ram_banks[i].resize(RAM_BANK_SIZE);
+                std::cout << "Initializing RAM bank " << static_cast<int>(i) << std::endl;
+                ram_banks[i].resize(RAM_BANK_SIZE, 0);
             }
         }
 
-        ram_bank = &ram_bank[0];
-        rom_bank_x = rom_data_.data() + ROM_BASE_ADDRESS;  // rom bank
+        ram_bank = ram_banks[0].data();
+        rom_bank_x = rom_data_.data() + ROM_BASE_ADDRESS;  // rom bank 1
     }
 
     bool is_mbc1() const noexcept
@@ -231,13 +234,13 @@ class Cartridge
     bool ram_enabled;
     bool ram_banking;
 
-    uint8_t* rom_bank_x;
+    uint8_t* rom_bank_x{nullptr};
     uint8_t banking_mode;
 
     uint8_t rom_bank_value;
     uint8_t ram_bank_value;
 
-    uint8_t* ram_bank;
+    uint8_t* ram_bank{nullptr};
 
     static constexpr uint8_t NUMBER_RAM_BANKS{16};
     RamBank ram_banks[NUMBER_RAM_BANKS];  // number of banks

@@ -24,6 +24,11 @@ uint8_t Device::read(uint16_t address) const noexcept
         return context_.interrupt_flags;
     }
 
+    if (address >= 0xFF10 && address <= 0xFF3F) {
+        // ignore sound
+        return 0;
+    }
+
     auto& logger = logger::Logger::instance();
     logger.log("UNSUPPORTED bus_read({:04X})", address);
     return 0;
@@ -56,6 +61,10 @@ void Device::write(uint16_t address, uint8_t value)
 
     if (address == 0xFF0F) {
         context_.interrupt_flags = value;
+        return;
+    }
+
+    if (address >= 0xFF10 && address <= 0xFF3F) {
         return;
     }
 
