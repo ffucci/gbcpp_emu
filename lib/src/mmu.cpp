@@ -68,11 +68,7 @@ auto MMU::read16(uint16_t address) const -> uint16_t
 }
 auto MMU::write(uint16_t address, uint8_t value) -> void
 {
-    auto make_dma_read = [this](uint8_t start_value) {
-        auto& logger = logger::Logger::instance();
-        logger.log("DMA start... {:04x}", start_value);
-        return dma_.start(start_value);
-    };
+    auto make_dma_read = [this](uint8_t start_value) { return dma_.start(start_value); };
 
     auto& logger = logger::Logger::instance();
 

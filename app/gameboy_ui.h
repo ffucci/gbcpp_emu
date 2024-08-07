@@ -257,7 +257,7 @@ class GameboyUI
 
     uint32_t prev_frame_{0};
 
-    static constexpr uint32_t SCALE{4};
+    static constexpr uint32_t SCALE{5};
     static constexpr uint32_t GRAY_COLOR{0xFF111111};
 
     static constexpr uint32_t TILE_COLORS[4] = {0xFFFFFFFF, 0xFFAAAAAA, 0xFF555555, 0xFF000000};
