@@ -9,10 +9,10 @@ namespace gameboy::cartridge {
 
 using RamBank = std::vector<uint8_t>;
 
-class MBC1
+class MBC1Cart
 {
    public:
-    explicit MBC1(std::string filename, std::span<uint8_t> rom_base, uint8_t ram_size)
+    explicit MBC1Cart(std::string filename, std::span<uint8_t> rom_base, uint8_t ram_size)
         : filename_(filename), rom_base_(std::move(rom_base))
     {
         setup_banks(ram_size);
@@ -38,7 +38,7 @@ class MBC1
 
     void write(uint16_t address, uint8_t value)
     {
-        uint16_t masked_address = (address & 0xE000);
+        uint16_t masked_address = (address & 0xE000);  // 1110 0000
         if (address < 0x2000) {
             ram_enabled = ((value & 0xF) == 0xA);
         }

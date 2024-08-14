@@ -21,10 +21,17 @@ enum class CartridgeType : uint8_t
     MBC1,
     MBC1_RAM,
     MBC1_RAM_BATTERY,
-    MBC2,
+    MBC2 = 5,
     MBC2_BATTERY,
     // TODO: Add all of them (MBC1 for now is enough)
+    ROM_RAM = 8,
+    ROM_RAM_BATTERY,
+
+    MBC3_TIMER_BATTERY = 0xF,
+    MBC3_TIMER_RAM_BATTERY,
     MBC3,
+    MBC3_RAM,
+    MBC3_RAM_BATTERY,
     MBC4,
     MBC5,
     Unknown
@@ -52,6 +59,18 @@ struct CartridgeMetadata
     uint8_t version;
     uint8_t checksum;
     uint16_t global_checksum;
+
+    bool is_mbc1() const noexcept
+    {
+        auto num_bank = std::to_underlying(cartridge_type);
+        return num_bank >= 1 && num_bank <= 3;
+    }
+
+    bool is_mbc3() const noexcept
+    {
+        auto num_bank = std::to_underlying(cartridge_type);
+        return num_bank >= 15 && num_bank <= 19;
+    }
 };
 
 inline auto compute_checksum(std::span<uint8_t> rom_view) -> uint8_t
@@ -74,7 +93,7 @@ inline CartridgeMetadata from_rom(std::span<uint8_t> rom_view)
     logger.log("RAM Size: \t{}", static_cast<size_t>(header.ram_size));
     logger.log("OLC: \t{:#x}", static_cast<size_t>(header.old_license_code));
     logger.log("G. CSUM: \t{:#x}", static_cast<size_t>(header.global_checksum));
-
+    logger.log("Cartridge type: \t{:x}", std::to_underlying(header.cartridge_type));
     const auto test = compute_checksum(rom_view) & 0xFF ? "PASSED" : "FAILED";
     logger.log(std::format("Checksum: {:#x}, => ({})\n", static_cast<int>(header.checksum), test));
 
