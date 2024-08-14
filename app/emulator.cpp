@@ -4,6 +4,7 @@
 #include <thread>
 
 #include "cartridge/cartridge.h"
+#include "cartridge/cartridge_metadata.h"
 #include "gameboy_ui.h"
 #include "utils/logger.h"
 #include "utils/utils.h"
@@ -26,8 +27,8 @@ int main(int argc, char** argv)
     logger.log("... Starting GB-EMU .... ");
     logger.log("< Written by Francesco Fucci >");
 
-    gameboy::cartridge::Cartridge cartridge(filename);
-    gameboy::cpu::CPU cpu(gameboy::cpu::get_initial_state(), cartridge);
+    auto cartridge = gameboy::cartridge::get_cartridge(filename);
+    gameboy::cpu::CPU cpu(gameboy::cpu::get_initial_state(), *cartridge);
 
     gameboy::ui::Emulation emulation(cpu);
     gameboy::ui::GameboyUI gameboy(emulation);

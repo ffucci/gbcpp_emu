@@ -9,7 +9,6 @@
 #include <thread>
 #include <utility>
 
-#include "cartridge/cartridge.h"
 #include "cpu/cpucontext.h"
 #include "cpu/instruction_handlers.h"
 

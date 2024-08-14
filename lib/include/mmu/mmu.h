@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <thread>
 #include "cartridge/cartridge.h"
+#include "cartridge/cartridge_metadata.h"
 #include "cpu/cpucontext.h"
 #include "io/gamepad.h"
 #include "io/lcd.h"
