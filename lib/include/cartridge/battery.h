@@ -28,6 +28,7 @@ class Battery
     void save(std::string_view filename, const uint8_t* ram_bank)
     {
         if (!ram_bank) {
+            std::cout << "Cannot save " << std::endl;
             return;
         }
         std::cout << "Save game... " << std::endl;
