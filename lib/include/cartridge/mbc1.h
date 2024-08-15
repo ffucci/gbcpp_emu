@@ -84,6 +84,8 @@ class MBC1 : public Cartridge
                 need_save_ = true;
             }
         }
+
+        save_to_battery();
     }
 
     ~MBC1()

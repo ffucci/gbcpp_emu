@@ -33,14 +33,28 @@ class Battery
             std::cout << "Cannot save " << std::endl;
             return;
         }
-        std::cout << "Save game... " << std::endl;
-        auto fname = std::format("{}.battery", filename);
-        auto file = std::ofstream(fname, std::ios::out | std::ios::binary);
-        file.write(std::bit_cast<char*>(ram_bank), RAM_BANK_SIZE);
-        file.close();
+
+        auto time = std::chrono::system_clock::now();
+        auto current_timestamp = time.time_since_epoch().count();
+        if (last_save_timestamp_ == 0) {
+            last_save_timestamp_ = current_timestamp;
+            return;
+        }
+
+        if (((current_timestamp - last_save_timestamp_) > (10ul * std::nano::den))) {
+            std::cout << "Passed " << std::dec << (current_timestamp - last_save_timestamp_) / std::nano::den << "sec "
+                      << std::endl;
+            last_save_timestamp_ = current_timestamp;
+            std::cout << "Save game... " << std::endl;
+            auto fname = std::format("{}.battery", filename);
+            auto file = std::ofstream(fname, std::ios::out | std::ios::binary);
+            file.write(std::bit_cast<char*>(ram_bank), RAM_BANK_SIZE);
+            file.close();
+        }
     }
 
    private:
-    uint8_t last_save_timestamp_{0};
+    // We can sort of rate limit the when to save
+    uint64_t last_save_timestamp_{0};
 };
 }  // namespace gameboy::cartridge
