@@ -8,7 +8,7 @@
 
 namespace gameboy::cartridge {
 
-class BatterySaver
+class Battery
 {
    public:
     void load(std::string_view filename, uint8_t* ram_bank)
@@ -16,6 +16,8 @@ class BatterySaver
         if (!ram_bank) {
             return;
         }
+
+        std::cout << "Loading saved data... " << std::endl;
         auto fname = std::format("{}.battery", filename);
         auto in_file = std::ifstream(fname, std::ios::in | std::ios::binary);
 

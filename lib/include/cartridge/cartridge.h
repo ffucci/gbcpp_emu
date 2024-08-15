@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "cartridge/battery_saver.h"
+#include "cartridge/battery.h"
 #include "cartridge/cartridge_metadata.h"
 #include "utils/logger.h"
 
@@ -28,7 +28,7 @@ class Cartridge
         has_battery_ = header_.has_battery();
         if (has_battery_) {
             std::cout << "Game has battery " << std::endl;
-            battery_saver = std::make_unique<BatterySaver>();
+            battery_saver = std::make_unique<Battery>();
             battery_saver->load(filename_, ram_data_.data());
         }
     }
@@ -77,7 +77,7 @@ class Cartridge
     // battery
     bool has_battery_{false};
     bool need_save_{false};  // should save data
-    std::unique_ptr<BatterySaver> battery_saver;
+    std::unique_ptr<Battery> battery_saver;
 
     uint16_t rom_idx_{0};
     uint16_t ram_idx_{0};
