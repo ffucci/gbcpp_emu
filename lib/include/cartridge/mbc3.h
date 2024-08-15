@@ -16,7 +16,7 @@ class MBC3 : public Cartridge
 
     uint8_t read(uint16_t address) const override
     {
-        if (address < 0x4000) {
+        if (address < ROM_BASE_ADDRESS) {
             return rom_data_[address];
         }
 
@@ -62,6 +62,7 @@ class MBC3 : public Cartridge
         if (address_in_range(address, 0x4000, 0x6000)) {
             if (value <= 0x03) {
                 rtc_enabled_ = false;
+                need_save_ = true;
                 ram_idx_ = value;
                 return;
             }
@@ -83,10 +84,10 @@ class MBC3 : public Cartridge
                     auto ElapsedTime = std::chrono::system_clock::now() - start_time_;
 
                     // Convert time stored into chrono object
-                    std::chrono::seconds RTCTime(rtc_[0] * 1 + rtc_[1] * 60 + rtc_[2] * 3600 + rtc_[3] * 86400);
+                    std::chrono::seconds rtc_time(rtc_[0] * 1 + rtc_[1] * 60 + rtc_[2] * 3600 + rtc_[3] * 86400);
 
                     // Add time elapsed to time in RTC
-                    auto UpdatedTime = RTCTime + ElapsedTime;
+                    auto UpdatedTime = rtc_time + ElapsedTime;
 
                     rtc_[0] =
                         std::chrono::duration_cast<std::chrono::seconds>(UpdatedTime).count() % 60;  // Seconds 0-59
@@ -115,10 +116,13 @@ class MBC3 : public Cartridge
                 return;
             }
 
-            if (rtc_enabled_) {
+            if (!rtc_enabled_) {
                 uint16_t addr_within_bank = address - 0xA000;
                 uint32_t bank_offset = 0x2000 * ram_idx_;
                 ram_data_[bank_offset + addr_within_bank] = value;
+                if (battery_saver) {
+                    battery_saver->save(filename_, ram_data_.data() + bank_offset);
+                }
                 return;
             }
 
@@ -161,7 +165,7 @@ class MBC3 : public Cartridge
         }
     }
 
-    // battery
+   private:
     bool rtc_enabled_{false};
 
     // Keeps track of rising edge

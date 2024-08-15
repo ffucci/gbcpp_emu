@@ -53,15 +53,12 @@ class MBC1 : public Cartridge
 
         if (masked_address == 0x4000) {
             value &= 0b11;
-            // if (ram_banking) {
+
             if (need_save_) {
-                uint32_t bank_offset = 0x2000 * ram_idx_;
-                auto ram_bank = ram_data_.data() + bank_offset;
-                battery_saver->save(filename_, ram_bank);
+                save_to_battery();
             }
 
             ram_idx_ = value;
-            // }
             return;
         }
 
@@ -70,11 +67,7 @@ class MBC1 : public Cartridge
             ram_banking = value & 1;
 
             if (ram_banking) {
-                if (need_save_) {
-                    uint32_t bank_offset = 0x2000 * ram_idx_;
-                    auto ram_bank = ram_data_.data() + bank_offset;
-                    battery_saver->save(filename_, ram_bank);
-                }
+                save_to_battery();
             }
         }
 
@@ -87,13 +80,26 @@ class MBC1 : public Cartridge
             uint32_t bank_offset = 0x2000 * ram_idx_;
             ram_data_[bank_offset + addr_within_bank] = value;
 
-            if (has_battery_) {
+            if (header_.has_battery()) {
                 need_save_ = true;
             }
         }
     }
 
+    ~MBC1()
+    {
+        save_to_battery();
+    }
+
    private:
+    void save_to_battery()
+    {
+        if (battery_saver) {
+            uint32_t bank_offset = 0x2000 * ram_idx_;
+            auto ram_bank = ram_data_.data() + bank_offset;
+            battery_saver->save(filename_, ram_bank);
+        }
+    }
     uint8_t ram_banking{0x0};
 };
 }  // namespace gameboy::cartridge

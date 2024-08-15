@@ -16,6 +16,9 @@
 
 namespace gameboy::cartridge {
 
+static constexpr uint16_t RAM_BANK_SIZE{0x2000};
+static constexpr uint16_t ROM_BASE_ADDRESS{0x4000};
+
 // Add the cartridge type
 enum class CartridgeType : uint8_t
 {

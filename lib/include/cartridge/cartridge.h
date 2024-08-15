@@ -25,11 +25,10 @@ class Cartridge
         : filename_(std::move(filename)), rom_data_(std::move(rom_data)), header_(std::move(metadata))
     {
         setup_banks(header_.ram_size);
-        has_battery_ = header_.has_battery();
-        if (has_battery_) {
-            std::cout << "Game has battery " << std::endl;
+        if (header_.has_battery()) {
+            std::cout << "Game supports battery " << std::endl;
             battery_saver = std::make_unique<Battery>();
-            battery_saver->load(filename_, ram_data_.data());
+            battery_saver->load(filename_, ram_data_);
         }
     }
 
@@ -75,15 +74,11 @@ class Cartridge
 
     bool ram_enabled_{false};
     // battery
-    bool has_battery_{false};
     bool need_save_{false};  // should save data
     std::unique_ptr<Battery> battery_saver;
 
     uint16_t rom_idx_{0};
     uint16_t ram_idx_{0};
-
-    static constexpr uint16_t RAM_BANK_SIZE{0x2000};
-    static constexpr uint16_t ROM_BASE_ADDRESS{0x4000};
 };
 
 }  // namespace gameboy::cartridge
