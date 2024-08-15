@@ -3,8 +3,8 @@
 #include <cstring>
 #include <thread>
 
-#include "cartridge/cartridge.h"
-#include "cartridge/cartridge_metadata.h"
+#include "cartridge/cartridge_factory.h"
+
 #include "gameboy_ui.h"
 #include "utils/logger.h"
 #include "utils/utils.h"

@@ -1,14 +1,16 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <iterator>
 #include <span>
+#include <type_traits>
 #include <utility>
 
-#include "cartridge/mbc1_cart.h"
 #include "utils/logger.h"
 #include "utils/utils.h"
 
@@ -36,6 +38,13 @@ enum class CartridgeType : uint8_t
     MBC5,
     Unknown
 };
+
+template <CartridgeType... ALL>
+static constexpr bool find_cart_type(CartridgeType h)
+{
+    std::array all_types = {ALL...};
+    return std::find(std::begin(all_types), std::end(all_types), h) != std::end(all_types);
+}
 
 using RomBank = std::vector<uint8_t>;
 using RamBank = std::vector<uint8_t>;
@@ -70,6 +79,16 @@ struct CartridgeMetadata
     {
         auto num_bank = std::to_underlying(cartridge_type);
         return num_bank >= 15 && num_bank <= 19;
+    }
+
+    bool has_battery() const noexcept
+    {
+        return find_cart_type<
+            CartridgeType::MBC1_RAM_BATTERY, CartridgeType::MBC2_BATTERY, CartridgeType::MBC3_RAM_BATTERY,
+            CartridgeType::MBC3_TIMER_BATTERY>(cartridge_type);
+        // return cartridge_type == CartridgeType::MBC1_RAM_BATTERY || cartridge_type == CartridgeType::MBC2_BATTERY ||
+        //        cartridge_type == CartridgeType::MBC3_RAM_BATTERY || cartridge_type ==
+        //        CartridgeType::MBC3_TIMER_BATTERY;
     }
 };
 
