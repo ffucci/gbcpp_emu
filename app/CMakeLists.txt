@@ -1,4 +1,4 @@
-add_executable(emulator emulator.cpp emulator_session.cpp)
+add_executable(emulator emulator.cpp)
 target_include_directories(emulator PUBLIC include)
 target_link_libraries(
     emulator

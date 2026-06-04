@@ -21,7 +21,7 @@
 #include <portable-file-dialogs.h>
 
 #include "cpu/cpu.h"
-#include "emulator_session.h"
+#include "../lib/include/utils/emulator_session.h"
 #include "ppu/ppu_context.h"
 
 namespace gameboy::ui {

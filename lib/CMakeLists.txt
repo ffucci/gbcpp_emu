@@ -9,6 +9,7 @@ add_library(gbemu_lib
     src/device.cpp
     src/ppu.cpp
     src/dma.cpp
+    src/emulator_session.cpp
 )
 
 target_include_directories(gbemu_lib PUBLIC include)

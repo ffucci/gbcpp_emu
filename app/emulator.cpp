@@ -3,7 +3,7 @@
 #include <cstring>
 #include <thread>
 
-#include "emulator_session.h"
+#include "../lib/include/utils/emulator_session.h"
 #include "gameboy_ui.h"
 #include "utils/logger.h"
 #include "utils/utils.h"
