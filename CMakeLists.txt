@@ -22,6 +22,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 find_package(Boost REQUIRED CONFIG)
+find_package(portable-file-dialogs REQUIRED CONFIG)
 find_package(SDL2 REQUIRED CONFIG)
 find_package(SDL2_ttf REQUIRED CONFIG)
 find_package(Threads REQUIRED)

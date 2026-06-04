@@ -28,5 +28,6 @@ class GbbcppEmuDependencies(ConanFile):
     def requirements(self):
         self.requires("boost/1.86.0")
         self.requires("gtest/1.15.0")
+        self.requires("portable-file-dialogs/0.1.0")
         self.requires("sdl/2.28.3")
         self.requires("sdl_ttf/2.22.0")

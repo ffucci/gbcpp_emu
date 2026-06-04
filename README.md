@@ -63,6 +63,7 @@ Conan resolves the C++ dependencies declared in `conanfile.py`:
 - SDL2.
 - SDL2_ttf.
 - GoogleTest.
+- portable-file-dialogs.
 
 When using a custom GCC installation, such as GCC 16 under `/opt/gcc`, the build embeds that compiler's `libstdc++` runtime path into the emulator binary. This avoids runtime errors where Linux finds an older system `libstdc++.so.6` first.
 
@@ -84,7 +85,13 @@ build-release/app/emulator
 
 ## Run
 
-Run the emulator with a Game Boy ROM:
+Run the emulator and load a ROM from the filesystem using `L`, `Enter`, or `Ctrl+O`:
+
+```sh
+./build-release/app/emulator
+```
+
+You can still start directly with a Game Boy ROM:
 
 ```sh
 ./build-release/app/emulator roms/cpu_instrs.gb
@@ -100,6 +107,12 @@ The app opens two SDL windows:
 
 - `gbemu_cpp`: scaled Game Boy screen.
 - Debug tile window: VRAM tile viewer.
+
+ROM loading shortcuts:
+
+| Action | Keyboard |
+| --- | --- |
+| Open ROM file dialog | `L`, `Ctrl+O`, or `Enter` when no ROM is loaded |
 
 ## Test
 
