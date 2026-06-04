@@ -4,6 +4,9 @@ add_library(gbemu_lib
     src/instruction_handlers.cpp
     src/instructions.cpp
     src/interrupt.cpp
+    src/mbc1.cpp
+    src/mbc3.cpp
+    src/mbc5.cpp
     src/mmu.cpp
     src/ram.cpp
     src/timer.cpp
