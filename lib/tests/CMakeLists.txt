@@ -2,9 +2,7 @@ include(GoogleTest)
 
 enable_testing()
 
-find_package(fmt)
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
+find_package(GTest REQUIRED CONFIG)
 
 add_executable(
     test_gbemu_lib
@@ -16,10 +14,9 @@ target_include_directories(test_gbemu_lib PUBLIC include)
 
 target_link_libraries(
     test_gbemu_lib
-
-    gbemu_lib
-    fmt::fmt
-    GTest::gtest_main
+    PRIVATE
+        gbemu_lib
+        GTest::gtest_main
 )
 
 gtest_discover_tests(test_gbemu_lib)

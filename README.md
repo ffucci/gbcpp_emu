@@ -54,25 +54,25 @@ Close either SDL window to stop the emulator.
 
 - CMake 3.26 or newer.
 - Ninja.
-- Clang with C++23 support.
-- SDL2 development headers and libraries.
-- SDL2_ttf development headers and libraries.
-- Boost headers.
-- OpenSSL development package.
-- GoogleTest and fmt for the test target.
+- A compiler with C++23 support.
+- Conan 2.
 
-On Ubuntu/Debian-like systems, the package names are typically:
+Conan resolves the C++ dependencies declared in `conanfile.py`:
 
-```sh
-sudo apt install cmake ninja-build clang libsdl2-dev libsdl2-ttf-dev libboost-dev libssl-dev libgtest-dev libfmt-dev
-```
+- Boost.
+- SDL2.
+- SDL2_ttf.
+- GoogleTest.
+
+When using a custom GCC installation, such as GCC 16 under `/opt/gcc`, the build embeds that compiler's `libstdc++` runtime path into the emulator binary. This avoids runtime errors where Linux finds an older system `libstdc++.so.6` first.
 
 ## Build
 
-Configure and build the release preset:
+Install dependencies, configure, and build the release preset:
 
 ```sh
-cmake --preset Release
+conan install . --output-folder=build-release/conan --settings=build_type=Release --build=missing
+cmake --fresh --preset Release
 cmake --build build-release
 ```
 
@@ -122,6 +122,16 @@ vimdiff <(head -n 200000 "log2.txt") <(head -n 200000 "/path/to/reference/log2.t
 ```
 
 That workflow is not automated in the repository yet.
+
+## Debug Build
+
+Install debug dependencies and configure the debug build directory:
+
+```sh
+conan install . --output-folder=build-debug/conan --settings=build_type=Debug --build=missing
+cmake --fresh --preset Coverage
+cmake --build build-debug
+```
 
 ## Project Layout
 

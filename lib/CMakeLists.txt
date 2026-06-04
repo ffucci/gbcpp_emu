@@ -1,9 +1,3 @@
-find_package(Boost)
-find_package(Threads REQUIRED)
-find_package(OpenSSL REQUIRED)
-
-include_directories(${Boost_INCLUDE_DIRS})
-
 add_library(gbemu_lib
     src/cpu.cpp
     src/instruction_handlers.cpp
@@ -18,5 +12,12 @@ add_library(gbemu_lib
 )
 
 target_include_directories(gbemu_lib PUBLIC include)
+target_link_libraries(
+    gbemu_lib
+    PUBLIC
+        Boost::boost
+        SDL2::SDL2
+        Threads::Threads
+)
 
 add_subdirectory(tests)

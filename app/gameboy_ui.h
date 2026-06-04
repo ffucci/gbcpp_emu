@@ -8,9 +8,10 @@
 #include <SDL_render.h>
 #include <SDL_stdinc.h>
 #include <SDL_video.h>
-#include <SDL2/SDL_ttf.h>
+#include <SDL_ttf.h>
 
 #include <sys/types.h>
+#include <algorithm>
 #include <cstdint>
 #include "cpu/cpu.h"
 #include "ppu/ppu_context.h"
@@ -38,28 +39,62 @@ class GameboyUI
     {
         SDL_Init(SDL_INIT_VIDEO);
         TTF_Init();
+        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
 
         window_ = SDL_CreateWindow(
             "gbemu_cpp", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, emulation_.width, emulation_.height,
-            SDL_WINDOW_OPENGL);
+            SDL_WINDOW_RESIZABLE);
+        if (!window_) {
+            SDL_Log("Could not create main window: %s", SDL_GetError());
+            emulation_.stop = true;
+            return;
+        }
+        SDL_SetWindowMinimumSize(window_, ppu::PPUContext::XRES, ppu::PPUContext::YRES);
 
-        renderer_ = SDL_CreateRenderer(window_, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        renderer_ = create_renderer(window_, "main");
+        if (!renderer_) {
+            emulation_.stop = true;
+            return;
+        }
         screen_ = SDL_CreateRGBSurface(
-            0, emulation_.width, emulation.height, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+            0, ppu::PPUContext::XRES, ppu::PPUContext::YRES, 32, 0x00FF0000, 0x0000FF00, 0x000000FF,
+            0xFF000000);
 
-        SDL_CreateWindowAndRenderer(
-            16 * 8 * GameboyUI::SCALE, 32 * 8 * GameboyUI::SCALE, 0, &debug_window_, &debug_renderer_);
+        debug_window_ = SDL_CreateWindow(
+            "gbemu_cpp tiles", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 16 * 8 * GameboyUI::SCALE,
+            32 * 8 * GameboyUI::SCALE, SDL_WINDOW_RESIZABLE);
+        if (!debug_window_) {
+            SDL_Log("Could not create debug window: %s", SDL_GetError());
+            emulation_.stop = true;
+            return;
+        }
+        SDL_SetWindowMinimumSize(debug_window_, DEBUG_WIDTH, DEBUG_HEIGHT);
+
+        debug_renderer_ = create_renderer(debug_window_, "debug");
+        if (!debug_renderer_) {
+            emulation_.stop = true;
+            return;
+        }
 
         texture_ = SDL_CreateTexture(
-            renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, emulation_.width, emulation_.height);
+            renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, ppu::PPUContext::XRES,
+            ppu::PPUContext::YRES);
+        if (!texture_) {
+            SDL_Log("Could not create main texture: %s", SDL_GetError());
+            emulation_.stop = true;
+            return;
+        }
 
         debug_texture_ = SDL_CreateTexture(
-            debug_renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
-            (16 * 8 * GameboyUI::SCALE) + 16 * SCALE, (32 * 8 * GameboyUI::SCALE) + (64 * SCALE));
+            debug_renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, DEBUG_WIDTH, DEBUG_HEIGHT);
+        if (!debug_texture_) {
+            SDL_Log("Could not create debug texture: %s", SDL_GetError());
+            emulation_.stop = true;
+            return;
+        }
 
         debug_screen_ = SDL_CreateRGBSurface(
-            0, (16 * 8 * SCALE) + (16 * SCALE), (32 * 8 * SCALE) + (64 * SCALE), 32, 0x00FF0000, 0x0000FF00, 0x000000FF,
-            0xFF000000);
+            0, DEBUG_WIDTH, DEBUG_HEIGHT, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 
         int x, y;
 
@@ -92,18 +127,37 @@ class GameboyUI
             if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) {
                 emulation_.stop = true;
             }
+
         }
     }
 
     ~GameboyUI()
     {
         SDL_DestroyTexture(texture_);
+        SDL_DestroyTexture(debug_texture_);
         SDL_DestroyRenderer(renderer_);
+        SDL_DestroyRenderer(debug_renderer_);
         SDL_DestroyWindow(window_);
+        SDL_DestroyWindow(debug_window_);
         SDL_Quit();
     }
 
    private:
+    SDL_Renderer* create_renderer(SDL_Window* window, const char* label)
+    {
+        constexpr std::array<uint32_t, 3> renderer_flags{
+            SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC, SDL_RENDERER_ACCELERATED, SDL_RENDERER_SOFTWARE};
+
+        for (const auto flags : renderer_flags) {
+            if (auto* renderer = SDL_CreateRenderer(window, -1, flags)) {
+                return renderer;
+            }
+        }
+
+        SDL_Log("Could not create %s renderer: %s", label, SDL_GetError());
+        return nullptr;
+    }
+
     void delay(uint32_t ms)
     {
         SDL_Delay(ms);
@@ -159,24 +213,23 @@ class GameboyUI
     {
         SDL_Rect rc;
         rc.x = rc.y = 0;
-        rc.w = rc.h = 2048;
+        rc.w = rc.h = 1;
 
         auto& video_buffer = emulation_.gameboy_cpu.memory().ppu().context().video_buffer;
 
         for (int line_num = 0; line_num < ppu::PPUContext::YRES; line_num++) {
             for (int x = 0; x < ppu::PPUContext::XRES; x++) {
-                rc.x = x * SCALE;
-                rc.y = line_num * SCALE;
-                rc.w = SCALE;
-                rc.h = SCALE;
+                rc.x = x;
+                rc.y = line_num;
 
                 SDL_FillRect(screen_, &rc, video_buffer[x + (line_num * ppu::PPUContext::XRES)]);
             }
         }
 
         SDL_UpdateTexture(texture_, NULL, screen_->pixels, screen_->pitch);
+        const auto dst = scaled_destination(renderer_, ppu::PPUContext::XRES, ppu::PPUContext::YRES);
         SDL_RenderClear(renderer_);
-        SDL_RenderCopy(renderer_, texture_, NULL, NULL);
+        SDL_RenderCopy(renderer_, texture_, NULL, &dst);
         SDL_RenderPresent(renderer_);
     }
 
@@ -210,9 +263,24 @@ class GameboyUI
         }
 
         SDL_UpdateTexture(debug_texture_, NULL, debug_screen_->pixels, debug_screen_->pitch);
+        const auto dst = scaled_destination(debug_renderer_, DEBUG_WIDTH, DEBUG_HEIGHT);
         SDL_RenderClear(debug_renderer_);
-        SDL_RenderCopy(debug_renderer_, debug_texture_, NULL, NULL);
+        SDL_RenderCopy(debug_renderer_, debug_texture_, NULL, &dst);
         SDL_RenderPresent(debug_renderer_);
+    }
+
+    SDL_Rect scaled_destination(SDL_Renderer* renderer, int source_width, int source_height)
+    {
+        int output_width = 0;
+        int output_height = 0;
+        SDL_GetRendererOutputSize(renderer, &output_width, &output_height);
+
+        const int scale = std::max(1, std::min(output_width / source_width, output_height / source_height));
+        const int scaled_width = source_width * scale;
+        const int scaled_height = source_height * scale;
+
+        return SDL_Rect{
+            (output_width - scaled_width) / 2, (output_height - scaled_height) / 2, scaled_width, scaled_height};
     }
 
     void display_tile(SDL_Surface* surface, uint16_t start_location, uint16_t tile_num, int x, int y)
@@ -241,23 +309,25 @@ class GameboyUI
         }
     }
 
-    SDL_Window* window_;
-    SDL_Window* debug_window_;
+    SDL_Window* window_{nullptr};
+    SDL_Window* debug_window_{nullptr};
 
-    SDL_Surface* screen_;
-    SDL_Surface* debug_screen_;
+    SDL_Surface* screen_{nullptr};
+    SDL_Surface* debug_screen_{nullptr};
 
-    SDL_Renderer* renderer_;
-    SDL_Renderer* debug_renderer_;
+    SDL_Renderer* renderer_{nullptr};
+    SDL_Renderer* debug_renderer_{nullptr};
 
-    SDL_Texture* texture_;
-    SDL_Texture* debug_texture_;
+    SDL_Texture* texture_{nullptr};
+    SDL_Texture* debug_texture_{nullptr};
 
     Emulation& emulation_;
 
     uint32_t prev_frame_{0};
 
     static constexpr uint32_t SCALE{5};
+    static constexpr int DEBUG_WIDTH{(16 * 8 * SCALE) + (16 * SCALE)};
+    static constexpr int DEBUG_HEIGHT{(32 * 8 * SCALE) + (64 * SCALE)};
     static constexpr uint32_t GRAY_COLOR{0xFF111111};
 
     static constexpr uint32_t TILE_COLORS[4] = {0xFFFFFFFF, 0xFFAAAAAA, 0xFF555555, 0xFF000000};
