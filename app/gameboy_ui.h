@@ -232,42 +232,42 @@ class GameboyUI
         auto& gamepad = cpu->memory().gamepad();
         switch (key.sym) {
             case SDLK_z: {
-                gamepad.state().b = pressed;
+                gamepad.set_pressed(io::GamePad::Button::B, pressed);
                 break;
             }
 
             case SDLK_x: {
-                gamepad.state().a = pressed;
+                gamepad.set_pressed(io::GamePad::Button::A, pressed);
                 break;
             }
 
             case SDLK_k: {
-                gamepad.state().start = pressed;
+                gamepad.set_pressed(io::GamePad::Button::Start, pressed);
                 break;
             }
 
             case SDLK_RETURN: {
-                gamepad.state().select = pressed;
+                gamepad.set_pressed(io::GamePad::Button::Select, pressed);
                 break;
             }
 
             case SDLK_UP: {
-                gamepad.state().up = pressed;
+                gamepad.set_pressed(io::GamePad::Button::Up, pressed);
                 break;
             }
 
             case SDLK_DOWN: {
-                gamepad.state().down = pressed;
+                gamepad.set_pressed(io::GamePad::Button::Down, pressed);
                 break;
             }
 
             case SDLK_LEFT: {
-                gamepad.state().left = pressed;
+                gamepad.set_pressed(io::GamePad::Button::Left, pressed);
                 break;
             }
 
             case SDLK_RIGHT: {
-                gamepad.state().right = pressed;
+                gamepad.set_pressed(io::GamePad::Button::Right, pressed);
                 break;
             }
         }
@@ -330,7 +330,7 @@ class GameboyUI
             return;
         }
 
-        const auto& state = cpu.memory().gamepad().state();
+        const auto& gamepad = cpu.memory().gamepad();
         const int unit = std::clamp(std::min(output_width, output_height) / 32, 12, 22);
         const int panel_width = unit * 16;
         const int panel_height = unit * 7;
@@ -346,25 +346,34 @@ class GameboyUI
 
         const int dpad_x = panel_x + unit * 2;
         const int dpad_y = panel_y + unit * 2;
-        draw_dpad_button({dpad_x + unit, dpad_y, unit, unit}, state.up, "^");
-        draw_dpad_button({dpad_x + unit, dpad_y + (unit * 2), unit, unit}, state.down, "V");
-        draw_dpad_button({dpad_x, dpad_y + unit, unit, unit}, state.left, "<");
-        draw_dpad_button({dpad_x + (unit * 2), dpad_y + unit, unit, unit}, state.right, ">");
-        draw_dpad_button({dpad_x + unit, dpad_y + unit, unit, unit}, state.up || state.down || state.left || state.right);
+        const bool up = gamepad.pressed(io::GamePad::Button::Up);
+        const bool down = gamepad.pressed(io::GamePad::Button::Down);
+        const bool left = gamepad.pressed(io::GamePad::Button::Left);
+        const bool right = gamepad.pressed(io::GamePad::Button::Right);
+        const bool b = gamepad.pressed(io::GamePad::Button::B);
+        const bool a = gamepad.pressed(io::GamePad::Button::A);
+        const bool select = gamepad.pressed(io::GamePad::Button::Select);
+        const bool start = gamepad.pressed(io::GamePad::Button::Start);
+
+        draw_dpad_button({dpad_x + unit, dpad_y, unit, unit}, up, "^");
+        draw_dpad_button({dpad_x + unit, dpad_y + (unit * 2), unit, unit}, down, "V");
+        draw_dpad_button({dpad_x, dpad_y + unit, unit, unit}, left, "<");
+        draw_dpad_button({dpad_x + (unit * 2), dpad_y + unit, unit, unit}, right, ">");
+        draw_dpad_button({dpad_x + unit, dpad_y + unit, unit, unit}, up || down || left || right);
 
         const int b_x = panel_x + unit * 10;
         const int a_x = panel_x + unit * 13;
         const int ab_y = panel_y + unit * 2;
-        draw_button_circle(b_x, ab_y + unit, unit, state.b);
-        draw_button_circle(a_x, ab_y, unit, state.a);
-        draw_text("Z", b_x - (unit / 3), ab_y + unit - (unit / 3), std::max(2, unit / 8), label_color(state.b));
-        draw_text("X", a_x - (unit / 3), ab_y - (unit / 3), std::max(2, unit / 8), label_color(state.a));
+        draw_button_circle(b_x, ab_y + unit, unit, b);
+        draw_button_circle(a_x, ab_y, unit, a);
+        draw_text("Z", b_x - (unit / 3), ab_y + unit - (unit / 3), std::max(2, unit / 8), label_color(b));
+        draw_text("X", a_x - (unit / 3), ab_y - (unit / 3), std::max(2, unit / 8), label_color(a));
 
         const int system_y = panel_y + unit * 5;
-        draw_system_button({panel_x + unit * 6, system_y, unit * 2, unit / 2}, state.select);
-        draw_system_button({panel_x + unit * 9, system_y, unit * 2, unit / 2}, state.start);
-        draw_text("ENT", panel_x + unit * 6, system_y + unit, std::max(1, unit / 10), label_color(state.select));
-        draw_text("K", panel_x + unit * 9 + (unit / 2), system_y + unit, std::max(1, unit / 10), label_color(state.start));
+        draw_system_button({panel_x + unit * 6, system_y, unit * 2, unit / 2}, select);
+        draw_system_button({panel_x + unit * 9, system_y, unit * 2, unit / 2}, start);
+        draw_text("ENT", panel_x + unit * 6, system_y + unit, std::max(1, unit / 10), label_color(select));
+        draw_text("K", panel_x + unit * 9 + (unit / 2), system_y + unit, std::max(1, unit / 10), label_color(start));
     }
 
     void draw_dpad_button(SDL_Rect rect, bool pressed, std::string_view label = "")

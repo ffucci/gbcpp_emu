@@ -1,5 +1,6 @@
 add_library(gbemu_lib
     src/cpu.cpp
+    src/gamepad.cpp
     src/instruction_handlers.cpp
     src/instructions.cpp
     src/interrupt.cpp

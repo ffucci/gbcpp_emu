@@ -2,97 +2,65 @@
 
 #include <cstdint>
 namespace gameboy::io {
-struct GamePadState
-{
-    bool start{false};
-    bool select{false};
-    bool a{false};
-    bool b{false};
-    // Direction part
-    bool up{false};
-    bool down{false};
-    bool left{false};
-    bool right{false};
-};
-
-struct GamePadContext
-{
-    bool button_select;
-    bool direction_select;
-    GamePadState state;
-};
 
 class GamePad
 {
    public:
-    auto button_selected() const noexcept -> bool
+    enum class Button : uint16_t
     {
-        return ctx_.button_select;
+        B = 0,
+        A = 1,
+        Select = 2,
+        Start = 3,
+        Right = 4,
+        Left = 5,
+        Up = 6,
+        Down = 7,
+    };
+
+    [[nodiscard]] auto button_selected() const noexcept -> bool
+    {
+        return context_ & BUTTON_SELECT_MASK;
     }
 
-    auto direction_selected() const noexcept -> bool
+    [[nodiscard]] auto direction_selected() const noexcept -> bool
     {
-        return ctx_.direction_select;
+        return context_ & DIRECTION_SELECT_MASK;
     }
 
-    auto state() noexcept -> GamePadState&
+    [[nodiscard]] auto pressed(Button button) const noexcept -> bool
     {
-        return ctx_.state;
+        return context_ & button_mask(button);
     }
 
-    void set_selection(uint8_t value)
+    void set_pressed(Button button, bool pressed) noexcept;
+
+    [[nodiscard]] auto encoded_context() const noexcept -> uint16_t
     {
-        ctx_.button_select = value & 0x20;
-        ctx_.direction_select = value & 0x10;
+        return context_;
     }
 
-    auto get_output() const noexcept -> uint8_t
+    void set_encoded_context(uint16_t context) noexcept
     {
-        uint8_t output = 0xCF;
-        auto button_set = !button_selected();
-        if (button_set) {
-            // if start is pressed
-            if (ctx_.state.start) {
-                output &= ~(1 << 3);
-            }
-
-            if (ctx_.state.select) {
-                output &= ~(1 << 2);
-            }
-
-            if (ctx_.state.a) {
-                output &= ~(1 << 1);
-            }
-
-            if (ctx_.state.b) {
-                output &= ~(1 << 0);
-            }
-        }
-
-        auto dir_set = !direction_selected();
-        if (dir_set) {
-            // if start is pressed
-            if (ctx_.state.left) {
-                output &= ~(1 << 1);
-            }
-
-            if (ctx_.state.right) {
-                output &= ~(1 << 0);
-            }
-
-            if (ctx_.state.up) {
-                output &= ~(1 << 2);
-            }
-
-            if (ctx_.state.down) {
-                output &= ~(1 << 3);
-            }
-        }
-        return output;
+        context_ = context;
     }
+
+    void set_selection(uint8_t value);
+
+    [[nodiscard]] auto get_output() const noexcept -> uint8_t;
 
    private:
-    GamePadContext ctx_;
+    [[nodiscard]] static constexpr auto button_mask(Button button) noexcept -> uint16_t
+    {
+        return 1 << static_cast<uint16_t>(button);
+    }
+
+    void set_bit(uint16_t mask, bool enabled) noexcept;
+
+    uint16_t context_{0};
+
+    static constexpr uint16_t BUTTON_SELECT_MASK{1 << 8};
+    static constexpr uint16_t DIRECTION_SELECT_MASK{1 << 9};
 };
 
 }  // namespace gameboy::io
