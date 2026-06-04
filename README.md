@@ -14,7 +14,7 @@ This project is a work in progress, but the core pieces are already in place:
 - MMU/bus routing for cartridge ROM/RAM, VRAM, WRAM, OAM, IO, HRAM, and interrupt enable.
 - PPU/LCD timing model with OAM, transfer, HBlank, and VBlank modes.
 - Timer, interrupts, DMA, gamepad input, and serial IO registers.
-- Cartridge support for ROM-only, MBC1, and MBC3 cartridges.
+- Cartridge support for ROM-only, MBC1, MBC3, and MBC5 cartridges.
 - Battery-backed RAM loading/saving for supported cartridge types.
 - SDL2 UI with main display and VRAM tile debug display.
 - GoogleTest target for library tests.
@@ -154,7 +154,7 @@ app/
   gameboy_ui.h       SDL rendering, debug tile window, and keyboard input
 
 lib/include/
-  cartridge/         ROM header parsing, cartridge interface, MBC1/MBC3, battery save support
+  cartridge/         ROM header parsing, cartridge interface, MBC1/MBC3/MBC5, battery save support
   cpu/               CPU context, instructions, interrupt handling, timer
   io/                LCD, gamepad, serial/device registers
   mmu/               Memory map, DMA, RAM
@@ -170,15 +170,22 @@ docs/images/         README diagrams
 ## Known Gaps Before Further Improvements
 
 - Test coverage is minimal and does not yet encode the manual validation workflow.
-- Cartridge support is focused on ROM-only, MBC1, and MBC3.
+- Cartridge support is focused on ROM-only, MBC1, MBC3, and MBC5.
 - Audio/APU emulation is not implemented.
 - Some IO and memory edge cases are still logged as unsupported.
 - The README diagrams describe the current implementation; they are not emulator screenshots.
 
-## Suggested Next Steps
+## Roadmap
 
-1. Add automated test ROM execution with pass/fail detection.
-2. Capture real screenshots for `dmg-acid2.gb`, `cpu_instrs.gb`, and a small homebrew ROM.
-3. Document compatibility by ROM and cartridge type.
-4. Add CI for configure, build, and tests.
-5. Split UI/debug rendering from emulation core so headless tests are easier to run.
+The original project structure is a good foundation: the emulator is already split around the main Game Boy hardware concepts, with separate areas for CPU, MMU, PPU, IO, cartridge handling, and the SDL app. That layout made it practical to add ROM loading, resizable rendering, input overlays, and MBC5 support without rewriting the whole project.
+
+The next improvements should focus on reducing coupling between those pieces while keeping the existing design recognizable.
+
+1. Introduce a `GameBoy` or `Emulator` facade that owns the core components and exposes a small API for loading ROMs, ticking frames, reading the framebuffer, handling input, and saving state.
+2. Keep SDL, menus, file dialogs, overlays, and debug windows in the app layer so the emulation core can also run headless.
+3. Move timing-sensitive behavior, such as DMA progression, into explicit implementation files and give it focused tests.
+4. Share common cartridge mapper behavior for RAM banking, battery-backed saves, and bounds-safe ROM/RAM access.
+5. Add automated test ROM execution with pass/fail detection.
+6. Capture real screenshots for `dmg-acid2.gb`, `cpu_instrs.gb`, and a small homebrew ROM.
+7. Document compatibility by ROM and cartridge type.
+8. Add CI for configure, build, and tests.

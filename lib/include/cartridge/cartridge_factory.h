@@ -3,6 +3,7 @@
 #include "cartridge/cartridge.h"
 #include "cartridge/mbc1.h"
 #include "cartridge/mbc3.h"
+#include "cartridge/mbc5.h"
 #include "cartridge/no_mbc.h"
 
 namespace gameboy::cartridge {
@@ -18,6 +19,10 @@ inline std::unique_ptr<Cartridge> get_cartridge(std::string filename)
 
     if (header.is_mbc3()) {
         return std::make_unique<MBC3>(std::move(filename), rom_data, header);
+    }
+
+    if (header.is_mbc5()) {
+        return std::make_unique<MBC5>(std::move(filename), rom_data, header);
     }
 
     return std::make_unique<NoMBC>(std::move(filename), rom_data, header);

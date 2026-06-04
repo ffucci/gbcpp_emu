@@ -8,6 +8,7 @@ add_executable(
     test_gbemu_lib
     main.cpp
     test_cpu_context.cpp
+    test_gamepad.cpp
 )
 
 target_include_directories(test_gbemu_lib PUBLIC include)

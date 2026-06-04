@@ -37,8 +37,12 @@ enum class CartridgeType : uint8_t
     MBC3,
     MBC3_RAM,
     MBC3_RAM_BATTERY,
-    MBC4,
-    MBC5,
+    MBC5 = 0x19,
+    MBC5_RAM,
+    MBC5_RAM_BATTERY,
+    MBC5_RUMBLE,
+    MBC5_RUMBLE_RAM,
+    MBC5_RUMBLE_RAM_BATTERY,
     Unknown
 };
 
@@ -84,11 +88,18 @@ struct CartridgeMetadata
         return num_bank >= 15 && num_bank <= 19;
     }
 
+    bool is_mbc5() const noexcept
+    {
+        auto num_bank = std::to_underlying(cartridge_type);
+        return num_bank >= 0x19 && num_bank <= 0x1E;
+    }
+
     bool has_battery() const noexcept
     {
         return find_cart_type<
             CartridgeType::MBC1_RAM_BATTERY, CartridgeType::MBC2_BATTERY, CartridgeType::MBC3_RAM_BATTERY,
-            CartridgeType::MBC3_TIMER_BATTERY>(cartridge_type);
+            CartridgeType::MBC3_TIMER_BATTERY, CartridgeType::MBC5_RAM_BATTERY, CartridgeType::MBC5_RUMBLE_RAM_BATTERY>(
+            cartridge_type);
         // return cartridge_type == CartridgeType::MBC1_RAM_BATTERY || cartridge_type == CartridgeType::MBC2_BATTERY ||
         //        cartridge_type == CartridgeType::MBC3_RAM_BATTERY || cartridge_type ==
         //        CartridgeType::MBC3_TIMER_BATTERY;
