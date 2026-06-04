@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="500" viewBox="0 0 1120 500" role="img" aria-labelledby="title desc">
+  <title id="title">Keyboard controls</title>
+  <desc id="desc">Keyboard layout for Game Boy emulator controls.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel { fill: #ffffff; stroke: #334155; stroke-width: 2; rx: 8; }
+      .key { fill: #e2e8f0; stroke: #475569; stroke-width: 2; rx: 8; }
+      .accent { fill: #dcfce7; stroke: #16a34a; }
+      .action { fill: #fee2e2; stroke: #dc2626; }
+      .system { fill: #e0f2fe; stroke: #0284c7; }
+      .title { font: 700 28px Arial, sans-serif; fill: #0f172a; }
+      .label { font: 700 18px Arial, sans-serif; fill: #0f172a; text-anchor: middle; }
+      .text { font: 15px Arial, sans-serif; fill: #334155; text-anchor: middle; }
+      .caption { font: 700 16px Arial, sans-serif; fill: #334155; text-anchor: middle; }
+    </style>
+  </defs>
+  <rect class="bg" width="1120" height="500"/>
+  <text class="title" x="40" y="54">Keyboard Controls</text>
+
+  <rect class="panel" x="76" y="104" width="420" height="324"/>
+  <text class="caption" x="286" y="146">D-pad</text>
+  <rect class="key accent" x="216" y="174" width="88" height="64"/>
+  <text class="label" x="260" y="214">↑</text>
+  <rect class="key accent" x="216" y="314" width="88" height="64"/>
+  <text class="label" x="260" y="354">↓</text>
+  <rect class="key accent" x="112" y="244" width="88" height="64"/>
+  <text class="label" x="156" y="284">←</text>
+  <rect class="key accent" x="320" y="244" width="88" height="64"/>
+  <text class="label" x="364" y="284">→</text>
+  <text class="text" x="286" y="410">Arrow keys map directly to the Game Boy directions.</text>
+
+  <rect class="panel" x="566" y="104" width="478" height="324"/>
+  <text class="caption" x="805" y="146">Buttons</text>
+  <rect class="key action" x="646" y="184" width="96" height="70"/>
+  <text class="label" x="694" y="214">Z</text>
+  <text class="text" x="694" y="238">B</text>
+  <rect class="key action" x="772" y="184" width="96" height="70"/>
+  <text class="label" x="820" y="214">X</text>
+  <text class="text" x="820" y="238">A</text>
+  <rect class="key system" x="646" y="300" width="96" height="70"/>
+  <text class="label" x="694" y="330">K</text>
+  <text class="text" x="694" y="354">Start</text>
+  <rect class="key system" x="772" y="300" width="146" height="70"/>
+  <text class="label" x="845" y="330">Enter</text>
+  <text class="text" x="845" y="354">Select</text>
+</svg>

@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="520" viewBox="0 0 1120 520" role="img" aria-labelledby="title desc">
+  <title id="title">Emulation frame loop</title>
+  <desc id="desc">Diagram of the application startup and frame update loop.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .bg { fill: #fbfbf9; }
+      .step { fill: #ffffff; stroke: #334155; stroke-width: 2; rx: 8; }
+      .thread { fill: #fff7ed; stroke: #ea580c; }
+      .ui { fill: #eef6ff; stroke: #2563eb; }
+      .render { fill: #ecfdf5; stroke: #059669; }
+      .title { font: 700 28px Arial, sans-serif; fill: #0f172a; }
+      .label { font: 700 17px Arial, sans-serif; fill: #0f172a; }
+      .text { font: 14px Arial, sans-serif; fill: #334155; }
+      .line { stroke: #334155; stroke-width: 2; marker-end: url(#arrow); fill: none; }
+      .loop { stroke: #475569; stroke-width: 2; stroke-dasharray: 7 6; marker-end: url(#arrow); fill: none; }
+    </style>
+  </defs>
+  <rect class="bg" width="1120" height="520"/>
+  <text class="title" x="40" y="54">Startup and Frame Loop</text>
+
+  <rect class="step" x="54" y="126" width="180" height="92"/>
+  <text class="label" x="86" y="162">Load ROM</text>
+  <text class="text" x="82" y="190">Parse header</text>
+  <text class="text" x="82" y="210">Create cartridge</text>
+
+  <rect class="step" x="284" y="126" width="180" height="92"/>
+  <text class="label" x="316" y="162">Create CPU</text>
+  <text class="text" x="310" y="190">Initial registers</text>
+  <text class="text" x="310" y="210">Attach memory map</text>
+
+  <rect class="step ui" x="514" y="126" width="180" height="92"/>
+  <text class="label" x="558" y="162">Init SDL</text>
+  <text class="text" x="540" y="190">Main window</text>
+  <text class="text" x="540" y="210">Tile debug window</text>
+
+  <rect class="step thread" x="744" y="126" width="220" height="92"/>
+  <text class="label" x="790" y="162">CPU Thread</text>
+  <text class="text" x="778" y="190">Run until stop token</text>
+  <text class="text" x="778" y="210">Advance hardware state</text>
+
+  <rect class="step ui" x="164" y="312" width="220" height="96"/>
+  <text class="label" x="208" y="350">Poll Events</text>
+  <text class="text" x="198" y="378">Keyboard to gamepad</text>
+  <text class="text" x="198" y="398">Window close to stop</text>
+
+  <rect class="step render" x="454" y="312" width="220" height="96"/>
+  <text class="label" x="492" y="350">Render Frame</text>
+  <text class="text" x="488" y="378">When frame counter changes</text>
+  <text class="text" x="488" y="398">Scale 160x144 buffer</text>
+
+  <rect class="step render" x="744" y="312" width="220" height="96"/>
+  <text class="label" x="792" y="350">Debug View</text>
+  <text class="text" x="778" y="378">Read VRAM tiles</text>
+  <text class="text" x="778" y="398">Draw tile atlas</text>
+
+  <path class="line" d="M234 172 H284"/>
+  <path class="line" d="M464 172 H514"/>
+  <path class="line" d="M694 172 H744"/>
+  <path class="line" d="M854 218 C854 270 274 260 274 312"/>
+  <path class="line" d="M384 360 H454"/>
+  <path class="line" d="M674 360 H744"/>
+  <path class="loop" d="M964 360 C1038 360 1038 472 274 472 C120 472 112 360 164 360"/>
+</svg>

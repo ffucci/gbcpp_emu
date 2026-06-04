@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="620" viewBox="0 0 1120 620" role="img" aria-labelledby="title desc">
+  <title id="title">gbbcpp_emu architecture overview</title>
+  <desc id="desc">Architecture diagram showing ROM loading, cartridge, CPU, MMU, PPU, devices, and SDL windows.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .box { fill: #ffffff; stroke: #334155; stroke-width: 2; rx: 8; }
+      .soft { fill: #eef6ff; stroke: #2563eb; }
+      .core { fill: #fff7ed; stroke: #ea580c; }
+      .mem { fill: #ecfdf5; stroke: #059669; }
+      .io { fill: #f5f3ff; stroke: #7c3aed; }
+      .title { font: 700 28px Arial, sans-serif; fill: #0f172a; }
+      .label { font: 700 18px Arial, sans-serif; fill: #0f172a; }
+      .text { font: 15px Arial, sans-serif; fill: #334155; }
+      .small { font: 13px Arial, sans-serif; fill: #475569; }
+      .line { stroke: #334155; stroke-width: 2; marker-end: url(#arrow); fill: none; }
+      .dash { stroke: #64748b; stroke-width: 2; stroke-dasharray: 6 6; marker-end: url(#arrow); fill: none; }
+    </style>
+  </defs>
+  <rect class="bg" width="1120" height="620"/>
+  <text class="title" x="40" y="52">gbbcpp_emu Architecture</text>
+  <text class="text" x="40" y="82">ROM bytes enter through the cartridge layer; every hardware access goes through the MMU.</text>
+
+  <rect class="box soft" x="54" y="140" width="180" height="96"/>
+  <text class="label" x="84" y="176">.gb ROM</text>
+  <text class="small" x="84" y="204">Header metadata</text>
+  <text class="small" x="84" y="224">Program data</text>
+
+  <rect class="box soft" x="304" y="124" width="220" height="128"/>
+  <text class="label" x="344" y="162">Cartridge</text>
+  <text class="small" x="334" y="192">ROM-only</text>
+  <text class="small" x="334" y="214">MBC1 / MBC3</text>
+  <text class="small" x="334" y="236">Battery RAM</text>
+
+  <rect class="box core" x="304" y="344" width="220" height="128"/>
+  <text class="label" x="382" y="382">CPU</text>
+  <text class="small" x="338" y="412">Fetch / decode / execute</text>
+  <text class="small" x="338" y="434">Timer and interrupts</text>
+  <text class="small" x="338" y="456">Cycle accounting</text>
+
+  <rect class="box mem" x="604" y="244" width="220" height="128"/>
+  <text class="label" x="686" y="282">MMU</text>
+  <text class="small" x="638" y="312">Memory map</text>
+  <text class="small" x="638" y="334">Bus reads and writes</text>
+  <text class="small" x="638" y="356">DMA dispatch</text>
+
+  <rect class="box mem" x="884" y="94" width="180" height="86"/>
+  <text class="label" x="942" y="130">PPU</text>
+  <text class="small" x="918" y="158">VRAM / OAM</text>
+
+  <rect class="box io" x="884" y="214" width="180" height="86"/>
+  <text class="label" x="944" y="250">LCD</text>
+  <text class="small" x="916" y="278">Registers / modes</text>
+
+  <rect class="box io" x="884" y="334" width="180" height="86"/>
+  <text class="label" x="918" y="370">Devices</text>
+  <text class="small" x="914" y="398">Gamepad / serial</text>
+
+  <rect class="box io" x="884" y="454" width="180" height="86"/>
+  <text class="label" x="932" y="490">SDL UI</text>
+  <text class="small" x="910" y="518">Screen + tile view</text>
+
+  <path class="line" d="M234 188 H304"/>
+  <path class="line" d="M524 188 C590 188 590 286 604 286"/>
+  <path class="line" d="M524 408 C590 408 590 330 604 330"/>
+  <path class="line" d="M604 332 C550 332 550 388 524 388"/>
+  <path class="line" d="M824 286 C854 180 854 138 884 138"/>
+  <path class="line" d="M824 304 H884"/>
+  <path class="line" d="M824 328 C854 376 854 376 884 376"/>
+  <path class="dash" d="M974 180 V214"/>
+  <path class="dash" d="M974 420 V454"/>
+</svg>
