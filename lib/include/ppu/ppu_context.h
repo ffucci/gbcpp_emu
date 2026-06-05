@@ -44,8 +44,9 @@ struct PixelQueueContext
     uint8_t tile_y;
     uint8_t fifo_x;
 
-    static constexpr uint8_t OAM_DATA_SIZE{6};
-    uint8_t fetch_entry_data[OAM_DATA_SIZE];
+    static constexpr uint8_t MAX_FETCHED_SPRITES{3};
+    static constexpr uint8_t BYTES_PER_SPRITE_TILE{2};
+    std::array<uint8_t, MAX_FETCHED_SPRITES*BYTES_PER_SPRITE_TILE> fetch_entry_data{};
 
     inline void line_reset()
     {

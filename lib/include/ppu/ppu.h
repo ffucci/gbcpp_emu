@@ -32,9 +32,9 @@ class PPU
             }
 
             return std::bit_cast<const uint8_t*>(ppu_context_.oam_ram.data())[address];
+        }else {
+            return std::bit_cast<const uint8_t*>(ppu_context_.vram.data())[address - 0x8000];
         }
-
-        return std::bit_cast<const uint8_t*>(ppu_context_.vram.data())[address - 0x8000];
     }
 
     template <PPUWriteType WriteType>
