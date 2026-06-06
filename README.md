@@ -4,7 +4,9 @@ A C++ Game Boy emulator project.
 
 The emulator loads a `.gb` ROM, runs the CPU on a worker thread, renders the LCD output through SDL2, and opens a second debug window that shows tile data from VRAM.
 
-<img src="docs/images/gameplay.gif" alt="Dr. Mario running in the emulator" width="320">
+<p align="center">
+  <img src="docs/images/gameplay.gif" alt="Dr Mario running in the emulator" width="320">
+</p>
 
 ![Emulator architecture](docs/images/architecture.svg)
 
