@@ -4,6 +4,8 @@ A C++ Game Boy emulator project.
 
 The emulator loads a `.gb` ROM, runs the CPU on a worker thread, renders the LCD output through SDL2, and opens a second debug window that shows tile data from VRAM.
 
+<img src="docs/images/gameplay.gif" alt="Dr. Mario running in the emulator" width="320">
+
 ![Emulator architecture](docs/images/architecture.svg)
 
 ## Current Status
@@ -189,3 +191,7 @@ The next improvements should focus on reducing coupling between those pieces whi
 6. Capture real screenshots for `dmg-acid2.gb`, `cpu_instrs.gb`, and a small homebrew ROM.
 7. Document compatibility by ROM and cartridge type.
 8. Add CI for configure, build, and tests.
+
+Additional design notes:
+
+- [Save-state implementation plan](docs/save-state-plan.md)
